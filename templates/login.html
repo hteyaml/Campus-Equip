@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Campus Inventory</title>
+</head>
+<body>
+    <h2>System Login</h2>
+    <!-- Django requires CSRF protection on POST forms -->
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Sign In</button>
+    </form>
+</body>
+</html>
