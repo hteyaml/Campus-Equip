@@ -28,6 +28,9 @@ def admin_dashboard(request):
     # We will pass live database metrics here later
     return render(request, 'admin/dashboard.html')
 
+def equipment_list_view(request):
+    return render(request, 'admin/equipment_list_view.html')
+
 @basic_user_required
 def user_portal(request):
     # We will pass the user's request history here later
