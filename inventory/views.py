@@ -41,13 +41,21 @@ def admin_dashboard(request):
         'active_catalog_items': CatalogItem.objects.filter(is_archived=False).count(),
         'recent_audits': AuditLog.objects.select_related('actor').order_by('-timestamp')[:5],
     }
-    return render(request, 'admin/browse_equipments.html')
+    return render(request, 'admin/dashboard.html')
 
 def user_accounts_view(request):
     return render(request, 'admin/user_accounts_view.html')
 
 def equipment_list_view(request):
     return render(request, 'admin/equipment_list_view.html')
+
+def loan_reports_view(request):
+    return render(request, 'admin/loan_reports_view.html')
+def overdue_reports_view(request):
+    return render(request, 'admin/overdue_reports_view.html')
+
+def audit_log_view(request):
+    return render(request, 'admin/audit_log_view.html')
 
 @basic_user_required
 def user_portal(request):
