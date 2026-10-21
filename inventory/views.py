@@ -1,10 +1,59 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog
+from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from .decorators import admin_required, basic_user_required
+from django.contrib import messages
+
+
+def signup(request):
+    # If the user is already logged in, redirect them away from the signup page
+    if request.user.is_authenticated:
+        return redirect('role_redirect')
+
+    if request.method == 'POST':
+        # Extract data from the HTML form
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        contact_number = request.POST.get('contact_number')
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+
+        # 1. Validation Checks
+        if password != confirm_password:
+            messages.error(request, 'Passwords do not match.')
+            return redirect('signup')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'That username is already taken.')
+            return redirect('signup')
+
+        # 2. Create the User (Django securely hashes the password automatically)
+        new_user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        # 3. Create the Linked Profile (Strictly hardcoded to BASIC_USER)
+        Profile.objects.create(
+            user=new_user,
+            role='BASIC_USER',
+            contact_number=contact_number
+        )
+
+        # 4. Redirect to login with a success message
+        messages.success(request, 'Account created successfully! You can now log in.')
+        return redirect('login')
+
+    # If it's a GET request, just render the empty form
+    return render(request, 'signup.html')
 
 @login_required
 def role_redirect(request):
