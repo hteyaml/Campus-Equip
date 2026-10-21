@@ -1,9 +1,3 @@
-/* ==========================================================
-   Campus Equipment System - Blue Theme
-   Palette: Primary #1D4ED8 | Secondary #0284C7 | Tertiary #38BDF8 | Neutral #0F172A
-   Fonts:   Headline = Plus Jakarta Sans | Body & Label = Inter
-   Load AFTER Bootstrap and dashboard.css so these overrides win.
-   ========================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
 :root {
@@ -63,7 +57,7 @@ h1, h2, h3, h4, h5, h6,
     background-color: var(--page-bg) !important;
 }
 
-/* ---------- Buttons ---------- */
+/* Buttons */
 .btn-primary {
     --bs-btn-bg: var(--brand-primary);
     --bs-btn-border-color: var(--brand-primary);
@@ -98,7 +92,7 @@ h1, h2, h3, h4, h5, h6,
     --bs-btn-hover-border-color: var(--brand-primary);
 }
 
-/* ---------- Forms ---------- */
+/* Forms */
 .form-control:focus,
 .form-select:focus {
     border-color: var(--brand-primary);
@@ -109,7 +103,7 @@ h1, h2, h3, h4, h5, h6,
     background-color: var(--primary-tint) !important;
 }
 
-/* ---------- Tables ---------- */
+/* Tables */
 .table-light {
     --bs-table-bg: var(--primary-tint);
     --bs-table-color: var(--brand-neutral);
@@ -119,7 +113,7 @@ h1, h2, h3, h4, h5, h6,
     --bs-table-hover-bg: var(--primary-tint);
 }
 
-/* ---------- Pagination ---------- */
+/* Pagination */
 .pagination {
     --bs-pagination-color: var(--brand-primary);
     --bs-pagination-hover-color: var(--primary-hover);
@@ -129,7 +123,7 @@ h1, h2, h3, h4, h5, h6,
     --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.2);
 }
 
-/* ---------- Dashboard stat cards (dashboard.css overrides) ---------- */
+/* Dashboard stat cards (dashboard.css overrides) */
 .stat-card {
     border-color: var(--primary-soft);
 }
@@ -150,7 +144,7 @@ h1, h2, h3, h4, h5, h6,
     color: var(--neutral-500);
 }
 
-/* ---------- Sidebar ---------- */
+/* Sidebar */
 .bg-hover-link:hover {
     background-color: rgba(56, 189, 248, 0.22) !important;
 }

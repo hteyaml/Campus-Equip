@@ -5,16 +5,49 @@
     border: 1px solid transparent;
 }
 
-/* Loan status (blue shades; icon + text carry the meaning too) */
-.report-issued   { background-color: var(--primary-soft);   color: var(--primary-deep);   border-color: #93C5FD; }
-.report-partial  { background-color: var(--secondary-soft); color: var(--secondary-deep); border-color: #7DD3FC; }
-.report-returned { background-color: var(--brand-neutral);  color: #ffffff;               border-color: var(--brand-neutral); }
-.report-overdue  { background-color: var(--danger-soft);    color: var(--danger-strong);  border-color: #FCA5A5; }
+/* Loan status */
+.report-issued   {
+    background-color: var(--primary-soft);
+    color: var(--primary-deep);
+    border-color: #93C5FD;
+}
+
+.report-partial  {
+    background-color: var(--secondary-soft);
+    color: var(--secondary-deep);
+    border-color: #7DD3FC;
+}
+
+.report-returned {
+    background-color: var(--brand-neutral);
+    color: #ffffff;
+    border-color: var(--brand-neutral);
+}
+
+.report-overdue  {
+    background-color: var(--danger-soft);
+    color: var(--danger-strong);
+    border-color: #FCA5A5;
+}
 
 /* Overdue severity: light blue -> deep blue -> red for the worst */
-.report-mild     { background-color: var(--tertiary-soft);  color: var(--secondary-deep); border-color: var(--brand-tertiary); }
-.report-moderate { background-color: var(--brand-primary);  color: #ffffff;               border-color: var(--brand-primary); }
-.report-severe   { background-color: var(--danger-strong);  color: #ffffff;               border-color: var(--danger-strong); }
+.report-mild     {
+    background-color: var(--tertiary-soft);
+    color: var(--secondary-deep);
+    border-color: var(--brand-tertiary);
+}
+
+.report-moderate {
+    background-color: var(--brand-primary);
+    color: #ffffff;
+    border-color: var(--brand-primary);
+}
+
+.report-severe   {
+    background-color: var(--danger-strong);
+    color: #ffffff;
+    border-color: var(--danger-strong);
+}
 
 .report-ref {
     background-color: var(--primary-tint);
@@ -39,7 +72,7 @@
     border-bottom: 0;
 }
 
-/* Vertical column dividers (between columns, not on the outer edges) */
+/* Vertical column dividers */
 .report-table > :not(caption) > tr > * + * {
     border-left: 1px solid var(--neutral-300);
 }
