@@ -1,11 +1,207 @@
 {% extends 'base_admin.html' %}
+{% load static %}
 
-{% block title %}Loan Reports| Campus Inventory{% endblock %}
+{% block title %}Loan Reports | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+{% endblock %}
 
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1">Loan Reports</h3>
+        <p class="text-muted mb-0">Issued loans within a date range, with units issued and returned.</p>
     </div>
+    <!-- Export keeps the current filters (GET: read-only) -->
+    <a href="?export=csv&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&status={{ request.GET.status }}&search={{ request.GET.search }}"
+       class="btn btn-outline-dark">
+        <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3">
+    <form method="GET" action="{% url 'loan_reports' %}" class="row g-2 align-items-end">
+        <div class="col-6 col-lg-2">
+            <label for="loanFrom" class="form-label small fw-medium mb-1">Issued from</label>
+            <input type="date" id="loanFrom" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        </div>
+        <div class="col-6 col-lg-2">
+            <label for="loanTo" class="form-label small fw-medium mb-1">Issued to</label>
+            <input type="date" id="loanTo" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        </div>
+        <div class="col-12 col-lg-2">
+            <label for="loanStatus" class="form-label small fw-medium mb-1">Loan status</label>
+            <select id="loanStatus" name="status" class="form-select">
+                <option value="">All statuses</option>
+                <option value="Issued"             {% if request.GET.status == 'Issued' %}selected{% endif %}>Issued</option>
+                <option value="Partially Returned" {% if request.GET.status == 'Partially Returned' %}selected{% endif %}>Partially Returned</option>
+                <option value="Returned"           {% if request.GET.status == 'Returned' %}selected{% endif %}>Returned</option>
+            </select>
+        </div>
+        <div class="col-12 col-lg-3">
+            <label for="loanSearch" class="form-label small fw-medium mb-1">Search</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="loanSearch" name="search" class="form-control border-start-0 ps-0"
+                       placeholder="Borrower or item name..." value="{{ request.GET.search }}">
+            </div>
+        </div>
+        <div class="col-12 col-lg-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Generate report</button>
+            {% if request.GET.date_from or request.GET.date_to or request.GET.status or request.GET.search %}
+                <a href="{% url 'loan_reports' %}" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Report totals (computed from the filtered loans) -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Loans in range</span>
+                <div class="stat-icon-badge"><i class="bi bi-arrow-repeat"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.total_loans|default:"0" }}</span>
+                <span class="stat-label">loans</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Units issued</span>
+                <div class="stat-icon-badge"><i class="bi bi-box-arrow-up-right"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.units_issued|default:"0" }}</span>
+                <span class="stat-label">units</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Units returned</span>
+                <div class="stat-icon-badge"><i class="bi bi-arrow-return-left"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.units_returned|default:"0" }}</span>
+                <span class="stat-label">units</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Still outstanding</span>
+                <div class="stat-icon-badge"><i class="bi bi-hourglass-split"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.units_outstanding|default:"0" }}</span>
+                <span class="stat-label">units</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loan table -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Loan records</span>
+        <small class="text-muted">
+            {% if page_obj %}{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}{% endif %}
+        </small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 report-table">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Borrower</th>
+                    <th scope="col" class="py-3">Items &amp; asset codes</th>
+                    <th scope="col" class="py-3">Issued</th>
+                    <th scope="col" class="py-3">Due date</th>
+                    <th scope="col" class="py-3 text-center">Returned</th>
+                    <th scope="col" class="py-3 pe-4">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Backend Integration: loop through the filtered, paginated loans -->
+                {% for loan in loans %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="fw-medium text-dark">{{ loan.request.owner.first_name }} {{ loan.request.owner.last_name }}</span><br>
+                        <small class="text-muted">{{ loan.request.owner.username }}</small>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for item in loan.request.requestitem_set.all %}
+                                <li>• {{ item.quantity }}x {{ item.catalog_item.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>
+                        <span class="fw-medium text-dark">{{ loan.issue_date|date:"M d, Y" }}</span><br>
+                        <small class="text-muted">by {{ loan.issued_by.username|default:"--" }}</small>
+                    </td>
+                    <td>{{ loan.due_date|date:"M d, Y" }}</td>
+                    <td class="text-center">
+                        <span class="fw-medium">{{ loan.units_returned|default:"0" }}</span>
+                        <span class="text-muted">/ {{ loan.units_issued|default:"0" }}</span>
+                    </td>
+                    <td class="pe-4">
+                        {% if loan.status == 'Returned' %}
+                            <span class="badge report-badge report-returned"><i class="bi bi-check-circle me-1"></i>Returned</span>
+                        {% elif loan.status == 'Partially Returned' %}
+                            <span class="badge report-badge report-partial"><i class="bi bi-circle-half me-1"></i>Partially Returned</span>
+                        {% else %}
+                            <span class="badge report-badge report-issued"><i class="bi bi-box-arrow-up-right me-1"></i>Issued</span>
+                        {% endif %}
+                        {% if loan.is_overdue %}
+                            <span class="badge report-badge report-overdue ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-file-earmark-bar-graph fs-1 d-block mb-3"></i>
+                            <h5>No Loans Found</h5>
+                            <p class="mb-0">No issued loans match this date range or filter.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <small class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</small>
+        <nav aria-label="Loan report pages">
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&status={{ request.GET.status }}&search={{ request.GET.search }}">Previous</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ page_obj.number }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&status={{ request.GET.status }}&search={{ request.GET.search }}">Next</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
