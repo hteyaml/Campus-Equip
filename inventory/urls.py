@@ -9,5 +9,5 @@ urlpatterns = [
     # Basic user routes
     path('portal/', views.user_portal, name='user_portal'),
     path('my-requests/', views.my_requests, name='my_requests'),
-    path('my-portal/', views.my_profile, name='my_profile'),
+    path('my-profile/', views.my_profile, name='my_profile'),
 ]
