@@ -1,0 +1,109 @@
+{% extends 'base_user.html' %}
+
+{% block title %}My Requests | Campus Inventory{% endblock %}
+
+{% block user_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">My Requests & Loans</h3>
+        <p class="text-muted mb-0">Track your borrowing history, loan statuses, and due dates.</p>
+    </div>
+    <!-- Quick link to go back to the Browse Catalog page to make a new request -->
+    <a href="{% url 'user_portal' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> New Request
+    </a>
+</div>
+
+<!-- Main Tracking Table -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Date Submitted</th>
+                    <th scope="col" class="py-3">Requested Items</th>
+                    <th scope="col" class="py-3">Status</th>
+                    <th scope="col" class="py-3">Due Date & Assets</th>
+                    <th scope="col" class="py-3 pe-4 text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Backend Integration: Loop through the user's specific requests -->
+                {% for req in borrow_requests %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="fw-medium text-dark">{{ req.request_date|date:"M d, Y" }}</span><br>
+                        <small class="text-muted">{{ req.request_date|time:"H:i A" }}</small>
+                    </td>
+
+                    <td>
+                        <!-- Loop through the individual items inside this specific request -->
+                        <ul class="list-unstyled mb-0">
+                            {% for item in req.requestitem_set.all %}
+                                <li>• {{ item.quantity }}x {{ item.catalog_item.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+
+                    <td>
+                        <!-- Dynamic Status Badges -->
+                        {% if req.workflow_status == 'Pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif req.workflow_status == 'Approved' %}
+                            <span class="badge bg-info text-dark">Approved</span>
+                        {% elif req.workflow_status == 'Issued' %}
+                            <span class="badge bg-primary">Issued</span>
+                        {% elif req.workflow_status == 'Returned' %}
+                            <span class="badge bg-success">Returned</span>
+                        {% elif req.workflow_status == 'Overdue' %}
+                            <span class="badge bg-danger">Overdue</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ req.workflow_status }}</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- Only show due dates and asset codes if the loan is actually issued/approved -->
+                        {% if req.loan %}
+                            <span class="fw-medium text-danger">Due: {{ req.loan.due_date|date:"M d, Y" }}</span><br>
+                            <!-- List allocated asset codes for tracking -->
+                            {% for allocation in req.requestitem_set.first.unitallocation_set.all %}
+                                <small class="text-muted"><i class="bi bi-upc-scan me-1"></i>{{ allocation.unit.asset_code }}</small><br>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">--</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="pe-4 text-end">
+                        <!-- Rule Enforcement: Users can only cancel Pending or Approved requests before issue -->
+                        {% if req.workflow_status == 'Pending' or req.workflow_status == 'Approved' %}
+                            <form method="POST" action="{% url 'cancel_request' req.id %}" onsubmit="return confirm('Are you sure you want to cancel this request? This action cannot be undone.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle me-1"></i> Cancel
+                                </button>
+                            </form>
+                        {% else %}
+                            <button class="btn btn-sm btn-light text-muted" disabled>Locked</button>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Explicit Empty State Requirement -->
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                            <h5>No Requests Found</h5>
+                            <p>You haven't submitted any equipment borrowing requests yet.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

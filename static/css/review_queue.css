@@ -1,0 +1,71 @@
+/*.bg-light-layout {*/
+/*        background-color: #f6f8fc;*/
+/*    }*/
+/*    .text-navy {*/
+/*        color: #0d1b3e;*/
+/*    }*/
+    .btn-navy {
+        background-color: #0a2540;
+        color: #ffffff;
+        border: none;
+    }
+    .btn-navy:hover {
+        background-color: #061729;
+        color: #ffffff;
+    }
+/*    .stat-card {*/
+/*        border: 1px solid #e2e8f0;*/
+/*        border-radius: 8px;*/
+/*        background-color: #ffffff;*/
+/*    }*/
+/*    .icon-box {*/
+/*        width: 30px;*/
+/*        height: 30px;*/
+/*        border-radius: 6px;*/
+/*        display: flex;*/
+/*        align-items: center;*/
+/*        justify-content: center;*/
+/*        font-size: 0.85rem;*/
+/*    }*/
+/*    .badge-soft-danger {*/
+/*        background-color: #fde8e8;*/
+/*        color: #e53e3e;*/
+/*    }*/
+/*    .badge-soft-primary {*/
+/*        background-color: #ebf8ff;*/
+/*        color: #2b6cb0;*/
+/*    }*/
+/*    .badge-soft-info {*/
+/*        background-color: #e6fffa;*/
+/*        color: #234e52;*/
+/*    }*/
+/*    .table-custom {*/
+/*        vertical-align: middle;*/
+/*        border-color: #edf2f7;*/
+/*    }*/
+/*    .table-custom th {*/
+/*        font-size: 0.7rem;*/
+/*        text-transform: uppercase;*/
+/*        letter-spacing: 0.04em;*/
+/*        color: #718096;*/
+/*        font-weight: 700;*/
+/*        background-color: #ffffff;*/
+/*        border-bottom: 2px solid #edf2f7;*/
+/*        padding-top: 0.6rem;*/
+/*        padding-bottom: 0.6rem;*/
+/*    }*/
+/*    .table-custom td {*/
+/*        font-size: 0.8rem;*/
+/*        padding-top: 0.65rem;*/
+/*        padding-bottom: 0.65rem;*/
+/*    }*/
+/*    .text-subtle {*/
+/*        color: #718096;*/
+/*        font-size: 0.75rem;*/
+/*    }*/
+/*    .filter-btn-group .btn {*/
+/*        font-size: 0.75rem;*/
+/*        font-weight: 600;*/
+/*        border-radius: 16px;*/
+/*        padding: 0.2rem 0.65rem;*/
+/*    }*/

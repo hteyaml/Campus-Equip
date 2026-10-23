@@ -1,0 +1,33 @@
+{% if messages %}
+<div class="toast-container app-toasts position-fixed top-0 end-0 p-3">
+  {% for m in messages %}
+  <div class="toast app-toast toast-{% if 'error' in m.tags %}error{% elif 'success' in m.tags %}success{% elif 'warning' in m.tags %}warning{% else %}info{% endif %}"
+       role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4500">
+    <div class="toast-body d-flex align-items-start gap-3">
+      <span class="toast-icon">
+        {% if 'error' in m.tags %}<i class="bi bi-x-circle-fill"></i>
+        {% elif 'success' in m.tags %}<i class="bi bi-check-circle-fill"></i>
+        {% elif 'warning' in m.tags %}<i class="bi bi-exclamation-triangle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+      </span>
+      <div class="flex-grow-1">
+        <div class="toast-title">
+          {% if 'error' in m.tags %}Error{% elif 'success' in m.tags %}Success{% elif 'warning' in m.tags %}Warning{% else %}Notice{% endif %}
+        </div>
+        <div class="toast-text">{{ m }}</div>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-progress"></div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.app-toast').forEach(function (el) {
+    bootstrap.Toast.getOrCreateInstance(el).show();
+  });
+});
+</script>
+{% endif %}

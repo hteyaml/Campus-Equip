@@ -1,0 +1,187 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block title %}Overdue Reports | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Overdue Reports</h4>
+        <p class="text-muted mb-0" style="font-size: 0.875rem">Loans with units still outstanding after their due date.</p>
+    </div>
+    <a href="?export=csv&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&search={{ request.GET.search }}"
+       class="btn btn-outline-dark" style="font-size: 0.875rem">
+        <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+</div>
+
+<!-- Report totals -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Overdue loans</span>
+                <div class="stat-icon-badge"><i class="bi bi-exclamation-triangle"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.total_loans|default:"0" }}</span>
+                <span class="stat-label">loans</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Units outstanding</span>
+                <div class="stat-icon-badge"><i class="bi bi-box-seam"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.units_outstanding|default:"0" }}</span>
+                <span class="stat-label">units</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Longest overdue</span>
+                <div class="stat-icon-badge"><i class="bi bi-calendar-x"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.max_days_overdue|default:"0" }}</span>
+                <span class="stat-label">days</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Borrowers affected</span>
+                <div class="stat-icon-badge"><i class="bi bi-people"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline">
+                <span class="stat-number me-2">{{ summary.borrowers|default:"0" }}</span>
+                <span class="stat-label">users</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Filters (by due date) -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3">
+    <form method="GET" action="{% url 'overdue_reports' %}" class="row g-2 align-items-end">
+        <div class="col-12 col-lg-5">
+        <label for="odSearch" class="form-label small fw-medium mb-1">Search</label>
+        <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="odSearch" name="search" class="form-control border-start-0 ps-0"
+                   placeholder="Borrower, item name, or asset code..." value="{{ request.GET.search }}" style="font-size: 0.875rem">
+        </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <label for="odFrom" class="form-label small fw-medium mb-1">Due from</label>
+            <input type="date" id="odFrom" name="date_from" class="form-control" value="{{ request.GET.date_from }}" style="font-size: 0.875rem">
+        </div>
+        <div class="col-6 col-lg-2">
+            <label for="odTo" class="form-label small fw-medium mb-1">Due to</label>
+            <input type="date" id="odTo" name="date_to" class="form-control" value="{{ request.GET.date_to }}" style="font-size: 0.875rem">
+        </div>
+        <div class="col-12 col-lg-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" style="font-size: 0.875rem">Generate report</button>
+            {% if request.GET.date_from or request.GET.date_to or request.GET.search %}
+                <a href="{% url 'overdue_reports' %}" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Overdue table -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold" style="font-size: 0.875rem">Overdue loans</span>
+        <small class="text-muted">
+            {% if page_obj %}{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}{% endif %}
+        </small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 report-table" style="font-size: 0.875rem">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Borrower</th>
+                    <th scope="col" class="py-3">Outstanding units</th>
+                    <th scope="col" class="py-3">Due date</th>
+                    <th scope="col" class="py-3 text-center">Days overdue</th>
+                    <th scope="col" class="py-3 pe-4">Severity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Backend Integration: days_overdue = (today - due_date).days, 0 on/before due date -->
+                {% for loan in overdue_loans %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="fw-medium text-dark">{{ loan.request.owner.first_name }} {{ loan.request.owner.last_name }}</span><br>
+                        <small class="text-muted">{{ loan.request.owner.username }} &middot; {{ loan.request.owner.profile.contact_number|default:"No contact" }}</small>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for unit in loan.outstanding_units %}
+                                <li>• {{ unit.catalog_item.name }} <code class="report-ref">{{ unit.asset_code }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td><span class="fw-medium text-danger">{{ loan.due_date|date:"M d, Y" }}</span></td>
+                    <td class="text-center"><span class="fw-bold">{{ loan.days_overdue }}</span></td>
+                    <td class="pe-4">
+                        <!-- Icon + text so severity never relies on color alone -->
+                        {% if loan.days_overdue >= 8 %}
+                            <span class="badge report-badge report-severe"><i class="bi bi-exclamation-octagon me-1"></i>8+ days</span>
+                        {% elif loan.days_overdue >= 4 %}
+                            <span class="badge report-badge report-moderate"><i class="bi bi-exclamation-triangle me-1"></i>4&ndash;7 days</span>
+                        {% else %}
+                            <span class="badge report-badge report-mild"><i class="bi bi-clock me-1"></i>1&ndash;3 days</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-check2-circle fs-1 d-block mb-3"></i>
+                            <h5>No Overdue Loans</h5>
+                            <p class="mb-0">Every issued loan is either returned or still within its due date.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <small class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</small>
+        <nav aria-label="Overdue report pages">
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&search={{ request.GET.search }}">Previous</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ page_obj.number }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&search={{ request.GET.search }}">Next</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

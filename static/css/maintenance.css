@@ -1,0 +1,18 @@
+
+
+.mnt-badge { font-weight: 600; border: 1px solid transparent; }
+.mnt-badge.open     { background: #FEF3C7; color: #92400E; border-color: #FCD34D; }
+.mnt-badge.closed   { background: #DCFCE7; color: #166534; border-color: #86EFAC; }
+.mnt-badge.balanced { background: #DCFCE7; color: #166534; border-color: #86EFAC; }
+.mnt-badge.off      { background: #FEE2E2; color: #991B1B; border-color: #FCA5A5; }
+
+.mnt-num { display: inline-block; min-width: 2.2rem; text-align: center; padding: .1rem .45rem;
+           border-radius: 6px; font-weight: 600; border: 1px solid transparent; }
+.mnt-num.available   { background: #DCFCE7; color: #166534; border-color: #86EFAC; }
+.mnt-num.reserved    { background: #E0F2FE; color: #075985; border-color: #7DD3FC; }
+.mnt-num.issued      { background: #E0E7FF; color: #3730A3; border-color: #A5B4FC; }
+.mnt-num.maintenance { background: #FEF3C7; color: #92400E; border-color: #FCD34D; }
+.mnt-num.retired     { background: #E2E8F0; color: #334155; border-color: #CBD5E1; }
+.mnt-num.total       { background: var(--primary-tint, #EFF4FF); color: var(--brand-neutral, #0F172A); font-weight: 800; }
+
+.mnt-total-row td { background: var(--primary-tint, #EFF4FF); font-weight: 700; }
