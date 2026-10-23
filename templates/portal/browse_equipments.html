@@ -1,15 +1,193 @@
 {% extends 'base_user.html' %}
+{% load static %}
 
-{% block title %}User Portal | Campus Inventory{% endblock %}
+{% block title %}Browse Equipment | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #0F172A;
+    }
+    .page-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .equipment-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background-color: #ffffff;
+    }
+    .equipment-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+    .badge-available {
+        background-color: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+    .badge-unavailable {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    .btn-primary-custom {
+        background-color: #1D4ED8;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        transition: background-color 0.2s ease;
+    }
+    .btn-primary-custom:hover {
+        background-color: #1e3a8a;
+        color: #ffffff;
+    }
+</style>
+{% endblock %}
 
 {% block user_content %}
-<div class="mb-4">
-    <h3 class="fw-bold mb-1">Browse Equipment</h3>
-    <p class="text-muted">Select available campus equipment to submit a borrowing request.</p>
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="page-title mb-1">Browse Equipment Catalog</h3>
+        <p class="text-muted mb-0" style="font-size: 0.875rem;">Explore available campus tools and request equipment for loan.</p>
+    </div>
 </div>
 
-<!-- Placeholder container for equipment list -->
-<div class="card p-4 text-center border-dashed">
-    <p class="text-muted mb-0">Equipment catalog items will be loaded here.</p>
+<!-- Search and Filter Bar -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+    <form method="GET" action="{% url 'user_portal' %}" class="row g-2 align-items-center">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" style="font-size: 0.875rem;"
+                       placeholder="Search by equipment name, model, or specs..."
+                       value="{{ search_query|default:'' }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="category" class="form-select" style="font-size: 0.875rem;">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                        {{ cat }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary-custom w-100" style="font-size: 0.875rem;">Filter</button>
+            {% if search_query or selected_category %}
+                <a href="{% url 'user_portal' %}" class="btn btn-outline-secondary" style="font-size: 0.875rem;">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Equipment Grid -->
+<div class="row g-4">
+    {% for item in catalog_items %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card equipment-card h-100 p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-light text-dark border fw-normal" style="font-size: 0.75rem;">
+                    {{ item.category.name|default:"General" }}
+                </span>
+                {% if item.available_units > 0 %}
+                    <span class="badge badge-available px-2 py-1" style="font-size: 0.75rem;">
+                        <i class="bi bi-check-circle me-1"></i>{{ item.available_units }} Available
+                    </span>
+                {% else %}
+                    <span class="badge badge-unavailable px-2 py-1" style="font-size: 0.75rem;">
+                        <i class="bi bi-x-circle me-1"></i>Out of Stock
+                    </span>
+                {% endif %}
+            </div>
+
+            <h5 class="fw-bold text-dark mb-1" style="font-family: 'Plus Jakarta Sans', sans-serif;">{{ item.name }}</h5>
+            <small class="text-muted d-block mb-2">Model: {{ item.model_number|default:"N/A" }}</small>
+
+            <p class="text-secondary small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                {{ item.description|default:"No description provided." }}
+            </p>
+
+            <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                <small class="text-muted">Total Units: <strong>{{ item.total_units }}</strong></small>
+
+                {% if item.available_units > 0 %}
+                    <button type="button" class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#requestModal{{ item.id }}">
+                        <i class="bi bi-plus-circle me-1"></i>Request
+                    </button>
+                {% else %}
+                    <button class="btn btn-sm btn-secondary" disabled>Unavailable</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+            <!-- Request Modal -->
+<div class="modal fade" id="requestModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0">
+
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold modal-title" style="font-family: 'Plus Jakarta Sans', sans-serif;">Request Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- ADDED: Form tag pointing to our new URL -->
+            <form method="POST" action="{% url 'submit_borrow_request' item.id %}">
+                {% csrf_token %}
+
+                <div class="modal-body py-3">
+                    <p class="mb-2"><strong>Item:</strong> {{ item.name }}</p>
+                    <p class="text-muted small mb-3">Available inventory: {{ item.available_units }} unit(s)</p>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Quantity Needed</label>
+                        <!-- ADDED: name="quantity" and required -->
+                        <input type="number" name="quantity" class="form-control" min="1" max="{{ item.available_units }}" value="1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Desired Return Date</label>
+                        <input type="date" name="desired_return_date" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Purpose / Reason for Borrowing</label>
+                        <!-- ADDED: name="purpose" and required -->
+                        <textarea name="purpose" class="form-control" rows="3" placeholder="State your academic or project reason..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <!-- UPDATED: type="submit" -->
+                    <button type="submit" class="btn btn-primary-custom">Submit Request</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <div class="text-muted">
+            <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
+            <h5>No Equipment Found</h5>
+            <p class="mb-0">No equipment matching your filter criteria is currently available in the catalog.</p>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
