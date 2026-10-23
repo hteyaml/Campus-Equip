@@ -90,8 +90,33 @@ def admin_dashboard(request):
         'active_catalog_items': CatalogItem.objects.filter(is_archived=False).count(),
         'recent_audits': AuditLog.objects.select_related('actor').order_by('-timestamp')[:5],
     }
-    return render(request, 'admin/dashboard.html')
+    return render(request, 'admin/admin_dashboard.html')
 
+@admin_required
+def equipment_list_view(request):
+    return render(request, 'admin/equipment_list_view.html')
+
+@admin_required
+def review_queue(request):
+    return render(request, 'admin/review_queue.html')
+
+@admin_required
+def equipment_release(request):
+    return render(request, 'admin/equipment_release.html')
+
+@admin_required
+def return_overdue(request):
+    return render(request, 'admin/return_overdue.html')
+
+@admin_required
+def maintenance_register(request):
+    return render(request, 'admin/maintenance_register.html')
+
+@admin_required
+def inventory_reconciliation(request):
+    return render(request, 'admin/inventory_reconciliation.html')
+
+@admin_required
 def user_accounts_view(request):
     # Base query: Fetch ONLY users who have the BASIC_USER role profile
     users_query = User.objects.filter(profile__role='BASIC_USER').order_by('-date_joined')
@@ -141,16 +166,34 @@ def toggle_user_status(request, user_id):
     # Send the admin back to the user directory table
     return redirect('user_accounts')
 
+@admin_required
 def loan_reports_view(request):
     return render(request, 'admin/loan_reports_view.html')
+
+@admin_required
 def overdue_reports_view(request):
     return render(request, 'admin/overdue_reports_view.html')
 
+@admin_required
 def audit_log_view(request):
     return render(request, 'admin/audit_log_view.html')
 
+@admin_required
 def operational_settings_view(request):
     return render(request, 'admin/operational_settings_view.html')
+
+
+
+@basic_user_required
+def user_portal(request):
+    return render(request, 'portal/browse_equipments.html')
+
+def my_requests(request):
+    return render(request, 'portal/my_requests.html')
+
+def my_profile(request):
+    return render(request, 'portal/my_profile.html')
+
 
 @basic_user_required
 def user_portal(request):

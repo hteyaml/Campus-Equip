@@ -1,0 +1,102 @@
+/*!* Laptop-optimized compact styling *!*/
+/*.bg-light-layout {*/
+/*    background-color: #f6f8fc;*/
+/*}*/
+/*.text-navy {*/
+/*    color: #0d1b3e;*/
+/*}*/
+/*.btn-navy {*/
+/*    background-color: #0a2540;*/
+/*    color: #ffffff;*/
+/*    border: none;*/
+/*}*/
+/*.btn-navy:hover {*/
+/*    background-color: #061729;*/
+/*    color: #ffffff;*/
+/*}*/
+/*.stat-card {*/
+/*    border: 1px solid #e2e8f0;*/
+/*    border-radius: 8px;*/
+/*    background-color: #ffffff;*/
+/*}*/
+/*.icon-box {*/
+/*    width: 30px;*/
+/*    height: 30px;*/
+/*    border-radius: 6px;*/
+/*    display: flex;*/
+/*    align-items: center;*/
+/*    justify-content: center;*/
+/*    font-size: 0.85rem;*/
+/*}*/
+
+/*!* Compact Asset Tag Styling *!*/
+/*.asset-tag {*/
+/*    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;*/
+/*    font-size: 0.7rem;*/
+/*    background-color: #f0f4f8;*/
+/*    border: 1px solid #cbd5e1;*/
+/*    color: #1e293b;*/
+/*    padding: 0.15rem 0.35rem;*/
+/*    border-radius: 4px;*/
+/*    display: inline-flex;*/
+/*    align-items: center;*/
+/*    gap: 0.25rem;*/
+/*}*/
+/*.asset-tag .cage-code {*/
+/*    color: #64748b;*/
+/*    font-weight: normal;*/
+/*}*/
+
+/*!* Soft Readiness Status Badges *!*/
+/*.badge-soft-success {*/
+/*    background-color: #e6fffa;*/
+/*    color: #047857;*/
+/*    border: 1px solid #a7f3d0;*/
+/*}*/
+/*.badge-soft-primary {*/
+/*    background-color: #ebf8ff;*/
+/*    color: #1d4ed8;*/
+/*    border: 1px solid #bfdbfe;*/
+/*}*/
+/*.badge-soft-info {*/
+/*    background-color: #f0fdf4;*/
+/*    color: #15803d;*/
+/*    border: 1px solid #bbf7d0;*/
+/*}*/
+
+/*!* Compact Table Styles for Laptops *!*/
+/*.table-custom {*/
+/*    vertical-align: middle;*/
+/*    border-color: #edf2f7;*/
+/*}*/
+/*.table-custom th {*/
+/*    font-size: 0.68rem;*/
+/*    text-transform: uppercase;*/
+/*    letter-spacing: 0.03em;*/
+/*    color: #64748b;*/
+/*    font-weight: 700;*/
+/*    background-color: #f8fafc;*/
+/*    border-bottom: 2px solid #e2e8f0;*/
+/*    padding-top: 0.6rem;*/
+/*    padding-bottom: 0.6rem;*/
+/*}*/
+/*.table-custom td {*/
+/*    font-size: 0.78rem;*/
+/*    padding-top: 0.65rem;*/
+/*    padding-bottom: 0.65rem;*/
+/*}*/
+/*.text-subtle {*/
+/*    color: #64748b;*/
+/*    font-size: 0.72rem;*/
+/*}*/
+/*.badge-pill-soft {*/
+/*    font-size: 0.65rem;*/
+/*    padding: 0.15rem 0.4rem;*/
+/*    border-radius: 10px;*/
+/*    font-weight: 600;*/
+/*}*/
+/*.search-input-pill {*/
+/*    background-color: #ebf3ff;*/
+/*    border: 1px solid #cbd5e1;*/
+/*    font-size: 0.8rem;*/
+/*}*/

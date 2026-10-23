@@ -1,97 +1,43 @@
-{% load static %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
-    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
-{% endblock %}
 
 <div class="d-flex">
     <div class="bg-dark text-white p-3" style="width: 250px; height: 100vh;">
         <h5>Equipment System</h5>
              <ul class="nav flex-column mt-4">
-
                 <li class="nav-item mb-1">
                     <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'admin_dashboard' %}">
-                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                        <i class="bi bi-columns-gap me-2"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'equipment_list' %}">
+                        <i class="bi bi-archive me-2"></i>Equipment List
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
+                        <i class="bi bi-card-checklist me-2"></i>Request Review
                     </a>
                 </li>
                  <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'user_accounts' %}">
-                        <i class="bi bi-people me-2"></i>User Accounts
-                    </a>
-                </li>
-
-
-                 <li class="nav-item mb-1">
                     <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-journal-text me-2"></i>Catalog Master
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-upc-scan me-2"></i>Physical Units Directory
-                    </a>
-                </li>
-
-                <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-inbox me-2"></i>Review Queue
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-box-arrow-right me-2"></i>Equipment Release
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-arrow-return-left me-2"></i>Returns & Overdue Tracking
-                    </a>
-                </li>
-
-
-                <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-wrench-adjustable me-2"></i>Maintenance Register
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
-                        <i class="bi bi-clipboard-check me-2"></i>Inventory Reconciliation
-                    </a>
-                </li>
-
-
-                 <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'loan_reports' %}">
-                        <i class="bi bi-file-earmark-bar-graph me-2"></i>Loan Reports
-                    </a>
-                </li>
-
-                  <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'overdue_reports' %}">
-                        <i class="bi bi-file-earmark-excel me-2"></i>Overdue Reports
-                    </a>
-
-                </li>
-                 <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'audit_log' %}">
-                        <i class="bi bi-clock-history me-2"></i>Audit Log
-                    </a>
-                </li>
-                  <li class="nav-item mb-1">
-                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'operational_settings' %}">
-                        <i class="bi bi-sliders me-2"></i>Settings
+                        <i class="bi bi-clipboard2-minus me-2"></i>Load & Return
                     </a>
                 </li>
                  <li class="nav-item mb-1">
-                    <form method="POST" action="{% url 'logout' %}">
-                         {% csrf_token %}
-                         <button type="submit" class="nav-link text-white px-3 py-2 bg-hover-link w-100 text-start border-0 bg-transparent">
-                         <i class="bi bi-box-arrow-right me-2"></i>Logout
-                         </button>
-                    </form>
+                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
+                        <i class="bi bi-wrench me-2"></i>Maintenance
+                    </a>
+                </li>
+                 <li class="nav-item mb-1">
+                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
+                        <i class="bi bi-person-gear me-2"></i>Accounts
+                    </a>
+                </li>
+                 <li class="nav-item mb-1">
+                    <a class="nav-link text-white px-3 py-2 bg-hover-link" href="#">
+                        <i class="bi bi-clock-history me-2"></i>Audit & Logs
+                    </a>
                 </li>
             </ul>
     </div>

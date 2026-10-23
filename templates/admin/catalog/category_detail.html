@@ -1,0 +1,62 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}{{ category.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/catalog.css' %}">{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid px-0">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 cat-header">
+    <div>
+      <h1 class="h3 fw-bold mb-1">{{ category.name }}</h1>
+      {% if category.is_archived %}
+        <span class="badge-status status-archived"><i class="bi bi-archive me-1"></i>ARCHIVED</span>
+      {% else %}
+        <span class="badge-status status-active"><i class="bi bi-check-circle me-1"></i>ACTIVE</span>
+      {% endif %}
+    </div>
+    <a href="{% url 'catalog:category_list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+  </div>
+
+  <div class="cat-card p-3 mb-4">
+    <h2 class="h6 text-muted mb-2">Description</h2>
+    <p class="mb-0">{{ category.description|default:"No description provided." }}</p>
+  </div>
+
+  <h2 class="h5 fw-bold mb-3">Catalog items in this category</h2>
+  <div class="cat-card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 cat-table clean">
+        <thead class="table-light">
+          <tr><th>Item name</th><th>Physical units</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for i in items %}
+          <tr class="{% if i.is_archived %}row-archived{% endif %}">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="cat-icon"><i class="bi bi-box-seam"></i></span>
+                <a href="{% url 'catalog:item_detail' i.pk %}" class="fw-semibold text-decoration-none item-link">{{ i.name }}</a>
+              </div>
+            </td>
+            <td><strong>{{ i.unit_count }}</strong> <span class="text-muted small">Units</span></td>
+            <td>
+              {% if i.is_archived %}
+                <span class="badge-status status-archived"><i class="bi bi-archive me-1"></i>ARCHIVED</span>
+              {% else %}
+                <span class="badge-status status-active"><i class="bi bi-check-circle me-1"></i>ACTIVE</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3">
+            <div class="empty-state"><i class="bi bi-inbox"></i>No catalog items in this category yet.</div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

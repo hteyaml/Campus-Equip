@@ -5,15 +5,15 @@
 {% block title %}Admin Dashboard - Equipment Inventory{% endblock %}
 
 {% block extra_css %}
-    <!-- Link page-specific CSS -->
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
 {% endblock %}
 
 {% block admin_content %}
 <div class="container-fluid px-0">
     <div class="mb-4">
-        <h1 class="fw-bold mb-1">Dashboard Overview</h1>
-        <p class="text-muted">Welcome to your Equipment Borrowing and Inventory System dashboard.</p>
+        <h3 class="fw-bold mb-1">Dashboard Overview</h3>
+        <p class="text-muted" style="font-size: 0.875rem">Welcome to your Equipment Borrowing and Inventory System dashboard.</p>
     </div>
 
 
@@ -97,13 +97,13 @@
         <div class="col-12 mt-4">
     <div class="stat-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0">Recent System Audit Stream</h5>
+            <h6 class="fw-bold mb-0">Recent System Audit Stream</h6>
             <a href="#" class="btn btn-sm btn-outline-dark">View All Logs</a>
         </div>
 
         <!-- Recent System Audit Stream -->
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
                 <thead class="table-light">
                     <tr>
                         <th>Timestamp</th>
