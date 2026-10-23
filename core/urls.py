@@ -25,6 +25,9 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
+    #Sign-Up Route
+    path('signup/', inventory_views.signup, name='signup'),
+
     # The central routing hub after login
     path('', inventory_views.role_redirect, name='role_redirect'),
 

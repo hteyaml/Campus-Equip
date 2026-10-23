@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 
+
 urlpatterns = [
     # Admin routes
     path('manage/', views.admin_dashboard, name='admin_dashboard'),
