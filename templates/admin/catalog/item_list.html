@@ -1,0 +1,168 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}Catalog Items{% endblock %}
+{% block messages %}{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/catalog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid px-0">
+{% include 'components/messages.html' %}
+  <div class="mb-3 cat-header">
+    <h4 class="h3 fw-bold mb-1">Catalog Master</h4>
+    <p class="text-muted mb-0" style="font-size: 0.875rem">Define equipment classifications and manage the catalog of borrowable items.</p>
+  </div>
+
+  {% include 'admin/catalog/_tabs.html' %}
+
+  <!-- Toolbar -->
+  <div class="cat-card toolbar mb-3">
+    <form method="get" class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+      <div class="input-group toolbar-search">
+        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+        <input type="search" name="q" value="{{ q }}" class="form-control" style="font-size: 0.875rem"
+               placeholder="Search items by name, description, or category">
+      </div>
+      <select name="category" class="form-select toolbar-select" style="font-size: 0.875rem" onchange="this.form.submit()">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == category_id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <a href="{% url 'catalog:item_create' %}" class="btn btn-primary ms-auto" style="font-size: 0.875rem" data-form-modal>
+      <i class="bi bi-plus-circle me-1"></i>Add Item
+    </a>
+  </div>
+
+  <!-- Table -->
+  <div class="cat-card">
+    <div class="table-responsive table-fixed">
+      <table class="table table-hover align-middle mb-0 cat-table clean" style="font-size: 0.875rem">
+        <thead class="table-light">
+          <tr>
+            <th>Item name</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Physical units</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in page_obj %}
+          <tr class="{% if i.is_archived %}row-archived{% endif %}">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="cat-icon"><i class="bi bi-box-seam"></i></span>
+                <span class="fw-semibold">{{ i.name }}</span>
+              </div>
+            </td>
+            <td class="text-nowrap">{{ i.category.name }}</td>
+            <td class="desc-cell">{{ i.description|default:"-"|truncatechars:80 }}</td>
+            <td class="text-nowrap"><strong>{{ i.unit_count }}</strong> <span class="text-muted small">Units</span></td>
+            <td>
+              {% if i.is_archived %}
+                <span class="badge-status status-archived"><i class="bi bi-archive me-1"></i>ARCHIVED</span>
+              {% else %}
+                <span class="badge-status status-active"><i class="bi bi-check-circle me-1"></i>ACTIVE</span>
+              {% endif %}
+            </td>
+            <td class="actions text-end">
+              <a href="{% url 'catalog:item_detail' i.pk %}"
+                 class="btn btn-sm icon-btn" title="View" aria-label="View {{ i.name }}">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'catalog:item_update' i.pk %}"
+                 class="btn btn-sm icon-btn" title="Edit" aria-label="Edit {{ i.name }}"
+                 data-form-modal>
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              {% if i.is_archived %}
+                <form method="post" action="{% url 'catalog:item_restore' i.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm icon-btn" title="Restore" aria-label="Restore {{ i.name }}">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+              {% else %}
+                <a href="{% url 'catalog:item_archive' i.pk %}"
+                   class="btn btn-sm icon-btn" title="Archive" aria-label="Archive {{ i.name }}"
+                   data-bs-toggle="modal" data-bs-target="#archiveModal"
+                   data-name="{{ i.name }}" data-inuse="{{ i.in_use }}"
+                   data-action="{% url 'catalog:item_archive' i.pk %}">
+                  <i class="bi bi-archive"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">
+            <div class="empty-state"><i class="bi bi-inbox"></i>No catalog items found.</div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'admin/catalog/_pager.html' %}
+  </div>
+</div>
+
+<!-- Archive modal (ang tunay na rule ay nasa server pa rin) -->
+<div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form method="post" id="archiveForm">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="d-flex gap-3">
+            <div class="modal-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+              <h5 class="fw-bold mb-2" id="archiveModalLabel">Archive item: <span id="archiveName"></span></h5>
+              <p class="text-muted mb-0">
+                Existing records and borrowing history are kept, not deleted. You can restore this item later.
+              </p>
+            </div>
+          </div>
+          <div id="archiveBlocked" class="alert alert-warning mt-3 mb-0 d-none"></div>
+          <div class="audit-note mt-3">
+            <i class="bi bi-shield-check me-2"></i>
+            This change will be recorded in the audit log under
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>.
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="archiveConfirm">
+            <i class="bi bi-archive me-1"></i>Confirm &amp; Archive
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('archiveModal').addEventListener('show.bs.modal', function (e) {
+  var t = e.relatedTarget;
+  var inUse = parseInt(t.dataset.inuse, 10) || 0;
+  document.getElementById('archiveName').textContent = t.dataset.name;
+  document.getElementById('archiveForm').action = t.dataset.action;
+  var blocked = document.getElementById('archiveBlocked');
+  var btn = document.getElementById('archiveConfirm');
+  if (inUse > 0) {
+    blocked.textContent = inUse + ' unit(s) are currently reserved or issued. Wait until they are returned.';
+    blocked.classList.remove('d-none');
+    btn.disabled = true;
+  } else {
+    blocked.classList.add('d-none');
+    btn.disabled = false;
+  }
+});
+</script>
+
+{% include 'admin/catalog/_form_modal.html' %}
+{% endblock %}

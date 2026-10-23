@@ -1,0 +1,42 @@
+<div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow" id="formModalContent"></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modalEl = document.getElementById('formModal');
+  var content = document.getElementById('formModalContent');
+  var headers = {'X-Requested-With': 'XMLHttpRequest'};
+
+ 
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('[data-form-modal]');
+    if (!link) return;
+    e.preventDefault();
+    fetch(link.href, {headers: headers, credentials: 'same-origin'})
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        content.innerHTML = html;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      });
+  });
+
+  
+  content.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var form = e.target;
+    fetch(form.action, {
+      method: 'POST', body: new FormData(form),
+      headers: headers, credentials: 'same-origin'
+    }).then(function (r) {
+      var type = r.headers.get('content-type') || '';
+      if (type.indexOf('application/json') !== -1) {
+        return r.json().then(function () { window.location.reload(); });
+      }
+      return r.text().then(function (html) { content.innerHTML = html; });  
+    });
+  });
+});
+</script>

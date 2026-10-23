@@ -1,0 +1,116 @@
+{% extends 'base_admin.html' %}
+
+{% load static %}
+
+{% block title %}User History - {{ target_user.username }} | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<!-- Header with Back Button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">User History: {{ target_user.first_name }} {{ target_user.last_name }}</h3>
+        <p class="text-muted mb-0" style="font-size: 0.875rem">Viewing account details and transaction history.</p>
+    </div>
+    <a href="{% url 'user_accounts' %}" class="btn btn-outline-secondary" style="font-size: 0.875rem">
+        <i class="bi bi-arrow-left me-1"></i> Back to Directory
+    </a>
+</div>
+
+<!-- User Profile Summary Card -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-4 bg-white">
+    <div class="row">
+        <div class="col-md-3">
+            <small class="text-muted d-block">Username</small>
+            <span class="fw-medium" style="font-size: 0.875rem">{{ target_user.username }}</span>
+        </div>
+        <div class="col-md-3">
+            <small class="text-muted d-block">Email</small>
+            <span class="fw-medium" style="font-size: 0.875rem">{{ target_user.email|default:"Not provided" }}</span>
+        </div>
+        <div class="col-md-3">
+            <small class="text-muted d-block">Contact Number</small>
+            <span class="fw-medium" style="font-size: 0.875rem">{{ target_user.profile.contact_number|default:"Not provided" }}</span>
+        </div>
+        <div class="col-md-3">
+            <small class="text-muted d-block">Account Status</small>
+            {% if target_user.is_active %}
+                <span class="badge bg-success">Active</span>
+            {% else %}
+                <span class="badge bg-danger">Deactivated</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Request History Table -->
+<h6 class="fw-bold mb-3">Borrowing Transactions</h6>
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Date Submitted</th>
+                    <th scope="col" class="py-3">Requested Items</th>
+                    <th scope="col" class="py-3">Status</th>
+                    <th scope="col" class="py-3 pe-4">Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in user_requests %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="fw-medium text-dark">{{ req.request_date|date:"M d, Y" }}</span><br>
+                        <small class="text-muted">{{ req.request_date|time:"H:i A" }}</small>
+                    </td>
+
+                    <td>
+                        <ul class="list-unstyled mb-0">
+                            {% for item in req.requestitem_set.all %}
+                                <li>• {{ item.quantity }}x {{ item.catalog_item.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+
+                    <td>
+                        {% if req.workflow_status == 'Pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif req.workflow_status == 'Approved' %}
+                            <span class="badge bg-info text-dark">Approved</span>
+                        {% elif req.workflow_status == 'Issued' %}
+                            <span class="badge bg-primary">Issued</span>
+                        {% elif req.workflow_status == 'Returned' %}
+                            <span class="badge bg-success">Returned</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ req.workflow_status }}</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="pe-4">
+                        {% if req.loan %}
+                            <span class="fw-medium text-danger">{{ req.loan.due_date|date:"M d, Y" }}</span>
+                        {% else %}
+                            <span class="text-muted">--</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                            <h5>No History Found</h5>
+                            <p>This user has not submitted any equipment requests yet.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

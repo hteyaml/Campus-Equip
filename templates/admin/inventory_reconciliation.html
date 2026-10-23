@@ -1,0 +1,224 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block title %}Inventory Reconciliation | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/maintenance.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">Inventory Reconciliation</h4>
+        <p class="text-muted mb-0" style="font-size: 0.875rem">Every physical unit has exactly one status. These counts are read live from the unit records.</p>
+    </div>
+    <a href="?" class="btn btn-outline-dark" style="font-size: 0.875rem"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Counts</a>
+</div>
+
+<!-- Counts by status (BACKEND: totals.available / reserved / issued / maintenance / retired / total) -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-2">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Available</span>
+                <div class="stat-icon-badge"><i class="bi bi-check2-circle"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline"><span class="stat-number me-2">{{ totals.available|default:"0" }}</span><span class="stat-label">units</span></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-2">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Reserved</span>
+                <div class="stat-icon-badge"><i class="bi bi-bookmark"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline"><span class="stat-number me-2">{{ totals.reserved|default:"0" }}</span><span class="stat-label">units</span></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-2">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Issued</span>
+                <div class="stat-icon-badge"><i class="bi bi-box-arrow-up-right"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline"><span class="stat-number me-2">{{ totals.issued|default:"0" }}</span><span class="stat-label">units</span></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-2">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Maintenance</span>
+                <div class="stat-icon-badge"><i class="bi bi-tools"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline"><span class="stat-number me-2">{{ totals.maintenance|default:"0" }}</span><span class="stat-label">units</span></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-2">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Retired</span>
+                <div class="stat-icon-badge"><i class="bi bi-archive"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline"><span class="stat-number me-2">{{ totals.retired|default:"0" }}</span><span class="stat-label">units</span></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-2">
+        <div class="stat-card h-100 border-primary">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <span class="stat-title">Total physical</span>
+                <div class="stat-icon-badge"><i class="bi bi-boxes"></i></div>
+            </div>
+            <div class="d-flex align-items-baseline"><span class="stat-number me-2">{{ totals.total|default:"0" }}</span><span class="stat-label">units</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Reconciliation result (text + icon, not color alone) -->
+{% if is_balanced %}
+<div class="alert alert-success d-flex align-items-start gap-2" role="status" >
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <div>
+        <strong>Counts reconcile to the physical total.</strong><br>
+        {{ totals.available }} + {{ totals.reserved }} + {{ totals.issued }} + {{ totals.maintenance }} + {{ totals.retired }} = {{ totals.total }} physical units. Discrepancy: 0 units.
+    </div>
+</div>
+{% else %}
+<div class="alert alert-danger d-flex align-items-start gap-2" role="alert" style="font-size: 0.875rem">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div>
+        <strong>Counts do not reconcile.</strong><br>
+        The five status counts differ from the physical total by {{ discrepancy }} unit{{ discrepancy|pluralize }}. Check the rows marked Check Counts below.
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-12 col-lg-5">
+            <label for="recSearch" class="form-label small fw-medium mb-1">Search</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="recSearch" name="search" class="form-control border-start-0 ps-0" style="font-size: 0.875rem"
+                       placeholder="Catalog item name..." value="{{ request.GET.search }}">
+            </div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="recCategory" class="form-label small fw-medium mb-1">Category</label>
+            <select id="recCategory" name="category" class="form-select" style="font-size: 0.875rem">
+                <option value="">All categories</option>
+                {% for c in categories %}
+                <option value="{{ c.id }}" {% if request.GET.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-lg-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1" style="font-size: 0.875rem">Apply</button>
+            {% if request.GET.search or request.GET.category %}
+                <a href="?" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Units by catalog item -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold" style="font-size: 0.875rem">Units by catalog item</span>
+        <small class="text-muted">
+            {% if page_obj %}{{ page_obj.paginator.count }} item{{ page_obj.paginator.count|pluralize }}{% endif %}
+        </small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Catalog item</th>
+                    <th scope="col" class="py-3 text-center">Available</th>
+                    <th scope="col" class="py-3 text-center">Reserved</th>
+                    <th scope="col" class="py-3 text-center">Issued</th>
+                    <th scope="col" class="py-3 text-center">Maintenance</th>
+                    <th scope="col" class="py-3 text-center">Retired</th>
+                    <th scope="col" class="py-3 text-center">Total</th>
+                    <th scope="col" class="py-3 pe-4">Check</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Backend Integration: one row per catalog item with its unit counts -->
+                {% for row in rows %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="fw-medium text-dark">{{ row.item.name }}</span><br>
+                        <small class="text-muted">{{ row.item.category.name }}</small>
+                    </td>
+                    <td class="text-center"><span class="mnt-num available">{{ row.available }}</span></td>
+                    <td class="text-center"><span class="mnt-num reserved">{{ row.reserved }}</span></td>
+                    <td class="text-center"><span class="mnt-num issued">{{ row.issued }}</span></td>
+                    <td class="text-center"><span class="mnt-num maintenance">{{ row.maintenance }}</span></td>
+                    <td class="text-center"><span class="mnt-num retired">{{ row.retired }}</span></td>
+                    <td class="text-center"><span class="mnt-num total">{{ row.total }}</span></td>
+                    <td class="pe-4">
+                        {% if row.balanced %}
+                            <span class="badge mnt-badge balanced"><i class="bi bi-check-circle me-1"></i>Balanced</span>
+                        {% else %}
+                            <span class="badge mnt-badge off"><i class="bi bi-exclamation-triangle me-1"></i>Check Counts</span>
+                        {% endif %}
+                        {# BACKEND (optional): row.units_url = link to Physical Units Directory filtered by this item #}
+                        {% if row.units_url %}<a class="ms-2 small" href="{{ row.units_url }}">View units</a>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-boxes fs-1 d-block mb-3"></i>
+                            <h5>No Catalog Items Found</h5>
+                            <p class="mb-0">No items match this filter. Clear the filters to see every item.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="mnt-total-row">
+                    <td class="ps-4">All items</td>
+                    <td class="text-center">{{ totals.available }}</td>
+                    <td class="text-center">{{ totals.reserved }}</td>
+                    <td class="text-center">{{ totals.issued }}</td>
+                    <td class="text-center">{{ totals.maintenance }}</td>
+                    <td class="text-center">{{ totals.retired }}</td>
+                    <td class="text-center">{{ totals.total }}</td>
+                    <td class="pe-4">
+                        {% if is_balanced %}<span class="badge mnt-badge balanced"><i class="bi bi-check-circle me-1"></i>Balanced</span>
+                        {% else %}<span class="badge mnt-badge off"><i class="bi bi-exclamation-triangle me-1"></i>Check Counts</span>{% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <small class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</small>
+        <nav aria-label="Reconciliation pages">
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ request.GET.search }}&category={{ request.GET.category }}">Previous</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ page_obj.number }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}&category={{ request.GET.category }}">Next</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

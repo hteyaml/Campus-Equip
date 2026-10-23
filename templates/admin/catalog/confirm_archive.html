@@ -1,0 +1,22 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}Confirm{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/catalog.css' %}">{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid px-0">
+  <div class="cat-card cat-form-card p-4" style="border-color: var(--danger-strong);">
+    <h1 class="h4 fw-bold"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>{{ action|default:"Archive"|capfirst }} {{ kind }}?</h1>
+    <p>You are about to {{ action|default:"archive" }} <strong>{% firstof object.name object.asset_code %}</strong>.</p>
+    <p class="text-muted">
+      It stays in the records. {% if action != "retire" %}You can restore it later.{% else %}A retired unit stays unavailable.{% endif %}
+    </p>
+    {% if blocked %}<div class="alert alert-warning">{{ blocked }}</div>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger" {% if blocked %}disabled{% endif %}>Yes, {{ action|default:"archive" }}</button>
+      <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

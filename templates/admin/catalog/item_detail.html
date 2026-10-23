@@ -1,0 +1,69 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}{{ item.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/catalog.css' %}">{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid px-0">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 cat-header">
+    <div>
+      <h1 class="h3 fw-bold mb-1">{{ item.name }}</h1>
+      <span class="text-muted me-2">{{ item.category.name }}</span>
+      {% if item.is_archived %}
+        <span class="badge-status status-archived"><i class="bi bi-archive me-1"></i>Archived</span>
+      {% else %}
+        <span class="badge-status status-active"><i class="bi bi-check-circle me-1"></i>Active</span>
+      {% endif %}
+    </div>
+    <div>
+      <a href="{% url 'catalog:item_update' item.pk %}" class="btn btn-outline-primary">Edit</a>
+      {% if not item.is_archived %}
+        <a href="{% url 'catalog:item_archive' item.pk %}" class="btn btn-outline-dark">Archive</a>
+      {% endif %}
+      <a href="{% url 'catalog:item_list' %}" class="btn btn-outline-secondary">Back</a>
+    </div>
+  </div>
+
+  <div class="cat-card p-3 mb-4">
+    <h2 class="h6 text-muted mb-2">Description</h2>
+    <p class="mb-0">{{ item.description|default:"No description provided." }}</p>
+  </div>
+
+  <h2 class="h5 fw-bold mb-3">Physical units by status</h2>
+  <div class="row g-3 mb-4">
+    {% for label, count in unit_counts %}
+    <div class="col-6 col-md">
+      <div class="cat-card count-card">
+        <div class="num">{{ count }}</div>
+        <div class="lbl">{{ label }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2 class="h5 fw-bold mb-3">Units</h2>
+  <div class="cat-card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 cat-table">
+        <thead class="table-light">
+          <tr><th>Asset code</th><th>Condition</th><th class="col-center">Acquired</th><th class="col-center">Status</th></tr>
+        </thead>
+        <tbody>
+          {% for u in units %}
+          <tr>
+            <td class="fw-semibold">{{ u.asset_code }}</td>
+            <td>{{ u.condition }}</td>
+            <td class="col-center">{{ u.acquisition_date }}</td>
+            <td class="col-center">{% include 'admin/catalog/_unit_status.html' with status=u.inventory_status %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">
+            <div class="empty-state"><i class="bi bi-inbox"></i>No physical units registered for this item.</div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
