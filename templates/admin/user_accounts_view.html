@@ -1,12 +1,18 @@
 {% extends 'base_admin.html' %}
+{% load static %}
 
 {% block title %}User Accounts | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
 
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1">User Accounts</h3>
-        <p class="text-muted mb-0">Manage basic-user access and view request histories.</p>
+        <p class="text-muted mb-0" style="font-size: 0.875rem">Manage basic-user access and view request histories.</p>
     </div>
 </div>
 
@@ -17,13 +23,13 @@
             <span class="input-group-text bg-light border-end-0">
                 <i class="bi bi-search text-muted"></i>
             </span>
-            <input type="text" name="search" class="form-control border-start-0 ps-0"
+            <input type="text" name="search" class="form-control border-start-0 ps-0" style="font-size: 0.875rem"
                    placeholder="Search by username, name, or email..."
-                   value="{{ request.GET.search }}">
+                   value="{{ request.GET.search|default:'' }}">
         </div>
-        <button type="submit" class="btn btn-primary px-4">Search</button>
+        <button type="submit" class="btn btn-primary px-4" style="font-size: 0.875rem">Search</button>
         {% if request.GET.search %}
-            <a href="{% url 'user_accounts' %}" class="btn btn-outline-secondary">Clear</a>
+            <a href="{% url 'user_accounts' %}" class="btn btn-outline-secondary" style="font-size: 0.875rem">Clear</a>
         {% endif %}
     </form>
 </div>
@@ -31,7 +37,7 @@
 <!-- User Directory Table -->
 <div class="card border-0 shadow-sm rounded-3">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
             <thead class="table-light">
                 <tr>
                     <th scope="col" class="py-3 ps-4">Username & Email</th>
@@ -42,7 +48,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Backend Integration: Loop through the basic users -->
                 {% for target_user in basic_users %}
                 <tr>
                     <td class="ps-4">
@@ -62,20 +67,18 @@
 
                     <td class="pe-4 text-end">
                         <div class="d-flex justify-content-end gap-2">
-                            <!-- Link to child page for request history -->
-                            <a href="{% url 'user_history' target_user.id %}" class="btn btn-sm btn-outline-primary">
+                            <a href="{% url 'user_history' target_user.id %}" class="btn btn-sm btn-outline-primary" style="font-size: 0.8125rem">
                                 <i class="bi bi-clock-history me-1"></i> History
                             </a>
 
-                            <!-- Secure POST form to toggle active status -->
                             <form method="POST" action="{% url 'toggle_user_status' target_user.id %}" class="m-0">
                                 {% csrf_token %}
                                 {% if target_user.is_active %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate Account">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size: 0.8125rem" title="Deactivate Account">
                                         <i class="bi bi-person-slash"></i>
                                     </button>
                                 {% else %}
-                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Activate Account">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" style="font-size: 0.8125rem" title="Activate Account">
                                         <i class="bi bi-person-check"></i>
                                     </button>
                                 {% endif %}
@@ -89,7 +92,7 @@
                         <div class="text-muted">
                             <i class="bi bi-people fs-1 d-block mb-3"></i>
                             <h5>No Users Found</h5>
-                            <p>No basic user accounts match your criteria.</p>
+                            <p class="mb-0">No basic user accounts match your criteria.</p>
                         </div>
                     </td>
                 </tr>

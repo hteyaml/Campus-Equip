@@ -1,0 +1,159 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}Physical Units Directory{% endblock %}
+{% block messages %}{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/catalog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid px-0">
+{% include 'components/messages.html' %}
+  <div class="mb-3 cat-header">
+    <h4 class="h3 fw-bold mb-1">Physical Units Directory</h4>
+    <p class="text-muted mb-0" style="font-size: 0.875rem">Register and track every physical unit by asset code.</p>
+  </div>
+
+  <div class="cat-card toolbar mb-3">
+    <form method="get" class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+      <div class="input-group toolbar-search">
+        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search by asset code" style="font-size: 0.875rem">
+      </div>
+      <select name="category" class="form-select toolbar-select" onchange="this.form.submit()" style="font-size: 0.875rem">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == category_id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="item" class="form-select toolbar-select" onchange="this.form.submit()" style="font-size: 0.875rem">
+        <option value="">All items</option>
+        {% for i in items %}
+          <option value="{{ i.pk }}" {% if i.pk|stringformat:"s" == item_id %}selected{% endif %}>{{ i.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" class="form-select toolbar-select" onchange="this.form.submit()" style="font-size: 0.875rem">
+        <option value="">All statuses</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+        <a href="{% url 'catalog:unit_create' %}" class="btn btn-primary ms-auto" style="font-size: 0.875rem" data-form-modal>
+          <i class="bi bi-plus-circle me-1"></i>Register Unit
+        </a>
+    </form>
+  </div>
+
+  <div class="cat-card">
+    <div class="table-responsive table-fixed">
+      <table class="table table-hover align-middle mb-0 cat-table clean" style="font-size: 0.875rem">
+        <thead class="table-light">
+          <tr>
+            <th>Asset code</th>
+            <th>Item</th>
+            <th>Category</th>
+            <th>Condition</th>
+            <th>Acquired</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in page_obj %}
+          <tr class="{% if u.inventory_status == 'Retired' %}row-archived{% endif %}">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="cat-icon"><i class="bi bi-hdd"></i></span>
+                <span class="fw-semibold">{{ u.asset_code }}</span>
+              </div>
+            </td>
+            <td>{{ u.catalog_item.name }}</td>
+            <td>{{ u.catalog_item.category.name }}</td>
+            <td>{{ u.condition }}</td>
+            <td class="text-nowrap">{{ u.acquisition_date|date:"M d, Y" }}</td>
+            <td>{% include 'admin/catalog/_unit_status.html' with status=u.inventory_status %}</td>
+            <td class="actions text-end">
+              <a href="{% url 'catalog:unit_update' u.pk %}"
+                 class="btn btn-sm icon-btn" title="Edit" aria-label="Edit {{ u.asset_code }}"
+                 data-form-modal>
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              {% if u.inventory_status != 'Retired' %}
+                <a href="{% url 'catalog:unit_retire' u.pk %}"
+                   class="btn btn-sm icon-btn" title="Retire" aria-label="Retire {{ u.asset_code }}"
+                   data-bs-toggle="modal" data-bs-target="#retireModal"
+                   data-name="{{ u.asset_code }}" data-status="{{ u.inventory_status }}"
+                   data-action="{% url 'catalog:unit_retire' u.pk %}">
+                  <i class="bi bi-slash-circle"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7">
+            <div class="empty-state"><i class="bi bi-inbox"></i>No units found.</div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'admin/catalog/_pager.html' %}
+  </div>
+</div>
+
+<div class="modal fade" id="retireModal" tabindex="-1" aria-labelledby="retireModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form method="post" id="retireForm">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="d-flex gap-3">
+            <div class="modal-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+              <h5 class="fw-bold mb-2" id="retireModalLabel">Retire unit: <span id="retireName"></span></h5>
+              <p class="text-muted mb-0">
+                A retired unit stays in the records but can no longer be borrowed. Its history is kept.
+              </p>
+            </div>
+          </div>
+          <div id="retireBlocked" class="alert alert-warning mt-3 mb-0 d-none"></div>
+          <div class="audit-note mt-3">
+            <i class="bi bi-shield-check me-2"></i>
+            This change will be recorded in the audit log under
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>.
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="retireConfirm">
+            <i class="bi bi-slash-circle me-1"></i>Confirm &amp; Retire
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('retireModal').addEventListener('show.bs.modal', function (e) {
+  var t = e.relatedTarget;
+  var status = t.dataset.status;
+  document.getElementById('retireName').textContent = t.dataset.name;
+  document.getElementById('retireForm').action = t.dataset.action;
+  var blocked = document.getElementById('retireBlocked');
+  var btn = document.getElementById('retireConfirm');
+  if (status === 'Reserved' || status === 'Issued') {
+    blocked.textContent = 'This unit is ' + status.toLowerCase() + ' and cannot be retired now.';
+    blocked.classList.remove('d-none');
+    btn.disabled = true;
+  } else {
+    blocked.classList.add('d-none');
+    btn.disabled = false;
+  }
+});
+</script>
+
+{% include 'admin/catalog/_form_modal.html' %}
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends 'base_admin.html' %}
+
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+  <div class="container-fluid px-3 py-3">
+
+    <div class="mb-2">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+                <h4 class="fw-bold text-navy mb-0 fs-4">Return & Overdue</h4>
+                <p class="text-muted small mb-0" style="font-size: 0.8rem;">
+                    Physical equipment handoffs, signed custody verifications, and conditional return routing.
+                </p>
+            </div>
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <button class="btn btn-outline-secondary btn-sm bg-white text-dark px-3" style="font-size: 0.78rem;">
+                    <i class="bi bi-arrow-return-left me-1"></i> Process Quick Return
+                </button>
+                <button class="btn btn-primary btn-sm px-3" style="font-size: 0.78rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Issue Equipment to Borrower
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <!-- Card 1: Active Deployments -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.65rem;">Active Field Deployments</span>
+                        <div class="icon-box bg-primary bg-opacity-10 text-primary p-2 rounded">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold mb-0 text-navy">14</h3>
+{#                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">32 units out</span>#}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Overdue Delinquencies -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.65rem;">Overdue Delinquencies</span>
+                        <div class="icon-box bg-danger bg-opacity-10 text-danger p-2 rounded">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold mb-0 text-navy">3</h3>
+{#                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-size: 0.7rem;">+4d longest breach</span>#}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Maintenance Routing -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.65rem;">Maintenance Routing</span>
+                        <div class="icon-box bg-success bg-opacity-10 text-success ">
+                            <i class="bi bi-wrench-adjust"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold mb-0 text-navy">1</h3>
+{#                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.7rem;">Part 5 auto-routed</span>#}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SECTION 1: Active Loans & Item-by-Item Return Processor -->
+   <div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold" style="font-size: 0.875rem">Active Loans & Item-by-Item Return Processor</span>
+        <small class="text-muted">
+            {% if page_obj %}{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}{% endif %}
+        </small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Loan Identifier</th>
+                    <th scope="col" class="py-3">Borrower Details</th>
+                    <th scope="col" class="py-3">Deployed Hardware Package</th>
+                    <th scope="col" class="py-3">Due Date</th>
+                    <th scope="col" class="py-3">Status</th>
+                    <th scope="col" class="py-3">Intake Processing</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Backend Integration: loop through the filtered, paginated maintenance records -->
+                {% for r in records %}
+                <tr>
+                    <td class="ps-4 fw-bold text-primary">#MNT-{{ r.id }}</td>
+                    <td>
+                        <span class="fw-medium text-dark">{{ r.unit.asset_code }}</span><br>
+                        <small class="text-muted">{{ r.unit.item.name }}</small><br>
+                        <small class="text-muted">{{ r.unit.item.category.name }}</small>
+                    </td>
+                    <td>{{ r.problem }}</td>
+                    <td>{% if r.action_taken %}{{ r.action_taken }}{% else %}<small class="text-muted">Not recorded yet</small>{% endif %}</td>
+                    <td>
+                        <small class="text-muted">Opened</small> {{ r.opened_on|date:"M d, Y" }}
+                        {% if r.closed_on %}<br><small class="text-muted">Closed</small> {{ r.closed_on|date:"M d, Y" }}{% endif %}
+                    </td>
+                    <td>{{ r.responsible_admin }}</td>
+                    <td>
+                        {% if r.status == 'OPEN' %}
+                            <span class="badge mnt-badge open"><i class="bi bi-wrench me-1"></i>Open</span>
+                        {% else %}
+                            <span class="badge mnt-badge closed"><i class="bi bi-check-circle me-1"></i>Closed</span>
+                        {% endif %}
+                    </td>
+                    <td class="pe-4 text-end">
+                        {% if r.status == 'OPEN' %}
+                        <button type="button" class="btn btn-sm btn-primary js-close-ticket"
+                                data-bs-toggle="modal" data-bs-target="#closeModal"
+                                data-ticket="#MNT-{{ r.id }}" data-asset="{{ r.unit.asset_code }}"
+                                {# BACKEND: replace with {% url 'your_close_maintenance_name' r.id %} #}
+                                data-action="/manage/maintenance/{{ r.id }}/close/">Close Ticket</button>
+                        {% else %}
+                        <small class="text-muted">No action</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="text-muted">
+                            <h5>No Records Found</h5>
+                            <p class="mb-0">No records match this filter.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+   </div>
+
+    <!-- SECTION 2: Overdue Circulation Watchlist -->
+    <div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold" style="font-size: 0.875rem">Overdue Circulation Watchlist</span>
+        <small class="text-muted">
+            {% if page_obj %}{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}{% endif %}
+        </small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Loan Identifier</th>
+                    <th scope="col" class="py-3">Borrower Details</th>
+                    <th scope="col" class="py-3">Deployed Hardware Package</th>
+                    <th scope="col" class="py-3">Due Date</th>
+                    <th scope="col" class="py-3">Status</th>
+                    <th scope="col" class="py-3">Intake Processing</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Backend Integration: loop through the filtered, paginated maintenance records -->
+                {% for r in records %}
+                <tr>
+                    <td class="ps-4 fw-bold text-primary">#MNT-{{ r.id }}</td>
+                    <td>
+                        <span class="fw-medium text-dark">{{ r.unit.asset_code }}</span><br>
+                        <small class="text-muted">{{ r.unit.item.name }}</small><br>
+                        <small class="text-muted">{{ r.unit.item.category.name }}</small>
+                    </td>
+                    <td>{{ r.problem }}</td>
+                    <td>{% if r.action_taken %}{{ r.action_taken }}{% else %}<small class="text-muted">Not recorded yet</small>{% endif %}</td>
+                    <td>
+                        <small class="text-muted">Opened</small> {{ r.opened_on|date:"M d, Y" }}
+                        {% if r.closed_on %}<br><small class="text-muted">Closed</small> {{ r.closed_on|date:"M d, Y" }}{% endif %}
+                    </td>
+                    <td>{{ r.responsible_admin }}</td>
+                    <td>
+                        {% if r.status == 'OPEN' %}
+                            <span class="badge mnt-badge open"><i class="bi bi-wrench me-1"></i>Open</span>
+                        {% else %}
+                            <span class="badge mnt-badge closed"><i class="bi bi-check-circle me-1"></i>Closed</span>
+                        {% endif %}
+                    </td>
+                    <td class="pe-4 text-end">
+                        {% if r.status == 'OPEN' %}
+                        <button type="button" class="btn btn-sm btn-primary js-close-ticket"
+                                data-bs-toggle="modal" data-bs-target="#closeModal"
+                                data-ticket="#MNT-{{ r.id }}" data-asset="{{ r.unit.asset_code }}"
+                                {# BACKEND: replace with {% url 'your_close_maintenance_name' r.id %} #}
+                                data-action="/manage/maintenance/{{ r.id }}/close/">Close Ticket</button>
+                        {% else %}
+                        <small class="text-muted">No action</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="text-muted">
+                            <h5>No Records Found</h5>
+                            <p class="mb-0">No records match this filter.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+   </div>
+</div>
+{% endblock %}

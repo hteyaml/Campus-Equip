@@ -1,0 +1,205 @@
+{% extends 'base_admin.html' %}
+
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/review_queue.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="w-100 bg-light-layout min-vh-100 px-3 px-xl-4 py-3">
+    <!-- Constrains width on ultra-wide / large monitors while scaling 100% on laptops -->
+    <div class="container-fluid px-0" style="max-width: 1650px;">
+
+        <!-- Header Section -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mb-xl-4">
+            <div>
+                <h4 class="fw-bold text-navy mb-0 fs-3 fs-xl-2">Review Queue</h4>
+                <p class="text-muted small mb-0" style="font-size: 0.875rem;">Evaluate, verify borrower eligibility, and approve or reject equipment reservation requests.</p>
+            </div>
+            <div class="d-flex gap-2 mt-2 mt-md-0" >
+                <button class="btn btn-outline-secondary btn-sm bg-white text-dark d-flex align-items-center gap-1 px-3 py-1.5 shadow-sm" style="font-size: 0.875rem">
+                    <i class="bi bi-download"></i> Export Queue CSV
+                </button>
+                <button class="btn btn-primary btn-sm d-flex align-items-center gap-1 px-3 py-1.5 shadow-sm" style="font-size: 0.875rem">
+                    <i class="bi bi-sliders"></i> Batch Review (Selected)
+                </button>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="row g-3 mb-4">
+            <!-- Card 1 -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.7rem;">Pending Verification</span>
+                            <div class="icon-box bg-danger bg-opacity-10 text-danger p-2 rounded">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold mb-0 text-navy">18</h2>
+                            <span class="text-muted small" style="font-size: 0.8rem;">requests</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.7rem;">Faculty Clearance Needed</span>
+                            <div class="icon-box bg-primary bg-opacity-10 text-primary p-2 rounded">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold mb-0 text-navy">4</h2>
+                            <span class="text-muted small" style="font-size: 0.8rem;">escalated</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.7rem;">Approved Today</span>
+                            <div class="icon-box bg-success bg-opacity-10 text-success p-2 rounded">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold mb-0 text-navy">29</h2>
+                            <span class="text-muted small" style="font-size: 0.8rem;">authorized</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.7rem;">Avg. Turnaround</span>
+                            <div class="icon-box bg-info bg-opacity-10 text-info p-2 rounded">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <h2 class="fw-bold mb-0 text-navy">1.8</h2>
+                            <span class="text-muted small" style="font-size: 0.8rem;">hours SLA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3">
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-lg-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" placeholder="Search by Request ID, borrower, student..." style="font-size: 0.875rem;">
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <select class="form-select text-secondary" style="font-size: 0.875rem;">
+                            <option selected>All Statuses (18)</option>
+                            <option value="1">Pending Review</option>
+                            <option value="2">Faculty Escalation</option>
+                            <option value="3">Under Review</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
+                            <input type="date" class="form-control border-start-0 ps-0 text-secondary" style="font-size: 0.875rem;">
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-1 text-end">
+                        <button class="btn btn-outline-secondary w-100" type="button"><i class="bi bi-funnel"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Card -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="py-3 ps-4">Request ID</th>
+                            <th scope="col" class="py-3">Borrower</th>
+                            <th scope="col" class="py-3">Item Request</th>
+                            <th scope="col" class="py-3">Request Date</th>
+                            <th scope="col" class="py-3">Anticipated Return</th>
+                            <th scope="col" class="py-3">Verification Status</th>
+                            <th scope="col" class="py-3 pe-4 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Backend Integration: loop through the filtered, paginated maintenance records -->
+                        {% for r in records %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-primary">#MNT-{{ r.id }}</td>
+                            <td>
+                                <span class="fw-medium text-dark">{{ r.unit.asset_code }}</span><br>
+                                <small class="text-muted">{{ r.unit.item.name }}</small><br>
+                                <small class="text-muted">{{ r.unit.item.category.name }}</small>
+                            </td>
+                            <td>{{ r.problem }}</td>
+                            <td>{% if r.action_taken %}{{ r.action_taken }}{% else %}<small class="text-muted">Not recorded yet</small>{% endif %}</td>
+                            <td>
+                                <small class="text-muted">Opened</small> {{ r.opened_on|date:"M d, Y" }}
+                                {% if r.closed_on %}<br><small class="text-muted">Closed</small> {{ r.closed_on|date:"M d, Y" }}{% endif %}
+                            </td>
+                            <td>{{ r.responsible_admin }}</td>
+                            <td>
+                                {% if r.status == 'OPEN' %}
+                                    <span class="badge mnt-badge open"><i class="bi bi-wrench me-1"></i>Open</span>
+                                {% else %}
+                                    <span class="badge mnt-badge closed"><i class="bi bi-check-circle me-1"></i>Closed</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                {% if r.status == 'OPEN' %}
+                                <button type="button" class="btn btn-sm btn-primary js-close-ticket"
+                                        data-bs-toggle="modal" data-bs-target="#closeModal"
+                                        data-ticket="#MNT-{{ r.id }}" data-asset="{{ r.unit.asset_code }}"
+                                        {# BACKEND: replace with {% url 'your_close_maintenance_name' r.id %} #}
+                                        data-action="/manage/maintenance/{{ r.id }}/close/">Close Ticket</button>
+                                {% else %}
+                                <small class="text-muted">No action</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="text-muted">
+                                    <h5>No Queue Records Found</h5>
+                                    <p class="mb-0">No records match this filter.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

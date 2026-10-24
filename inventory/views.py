@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile
+from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, RequestItem
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Count, Q
 from .decorators import admin_required, basic_user_required
 from django.contrib import messages
 
@@ -90,8 +90,33 @@ def admin_dashboard(request):
         'active_catalog_items': CatalogItem.objects.filter(is_archived=False).count(),
         'recent_audits': AuditLog.objects.select_related('actor').order_by('-timestamp')[:5],
     }
-    return render(request, 'admin/dashboard.html')
+    return render(request, 'admin/admin_dashboard.html')
 
+@admin_required
+def equipment_list_view(request):
+    return render(request, 'admin/equipment_list_view.html')
+
+@admin_required
+def review_queue(request):
+    return render(request, 'admin/review_queue.html')
+
+@admin_required
+def equipment_release(request):
+    return render(request, 'admin/equipment_release.html')
+
+@admin_required
+def return_overdue(request):
+    return render(request, 'admin/return_overdue.html')
+
+@admin_required
+def maintenance_register(request):
+    return render(request, 'admin/maintenance_register.html')
+
+@admin_required
+def inventory_reconciliation(request):
+    return render(request, 'admin/inventory_reconciliation.html')
+
+@admin_required
 def user_accounts_view(request):
     # Base query: Fetch ONLY users who have the BASIC_USER role profile
     users_query = User.objects.filter(profile__role='BASIC_USER').order_by('-date_joined')
@@ -141,23 +166,113 @@ def toggle_user_status(request, user_id):
     # Send the admin back to the user directory table
     return redirect('user_accounts')
 
+@admin_required
 def loan_reports_view(request):
     return render(request, 'admin/loan_reports_view.html')
+
+@admin_required
 def overdue_reports_view(request):
     return render(request, 'admin/overdue_reports_view.html')
 
+@admin_required
 def audit_log_view(request):
     return render(request, 'admin/audit_log_view.html')
 
+@admin_required
 def operational_settings_view(request):
     return render(request, 'admin/operational_settings_view.html')
 
+
+
 @basic_user_required
 def user_portal(request):
-    return render(request, 'portal/browse_equipments.html')
+    """
+    Displays equipment catalog for student browsing with search,
+    category filtering, and real-time availability counts.
+    """
+    search_query = request.GET.get('search', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+
+    # Annotate total physical units per catalog item
+    items = CatalogItem.objects.annotate(
+        total_units=Count('equipmentunit')
+    ).order_by('name')
+
+    # Apply search filter
+    if search_query:
+        items = items.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+
+    # Apply category filter
+    if category_filter:
+        items = items.filter(category_id=category_filter)
+
+    # Safely compute available units for each catalog item
+    for item in items:
+        # Access the related equipment units manager
+        units_manager = getattr(item, 'equipmentunit', None) or getattr(item, 'equipmentunit_set', None)
+        if units_manager:
+            try:
+                item.available_units = units_manager.filter(status='AVAILABLE').count()
+            except Exception:
+                # Fallback if status uses a foreign key / lookup
+                try:
+                    item.available_units = units_manager.filter(status__name='AVAILABLE').count()
+                except Exception:
+                    item.available_units = item.total_units
+        else:
+            item.available_units = 0
+
+    # Fetch unique categories for the filter dropdown
+    categories = CatalogItem.objects.values_list('category__name', flat=True).distinct()
+
+    context = {
+        'catalog_items': items,
+        'categories': categories,
+        'selected_category': category_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'portal/browse_equipments.html', context)
 
 def my_requests(request):
     return render(request, 'portal/my_requests.html')
 
+
+@basic_user_required
+def submit_borrow_request(request, item_id):
+    """Handles the creation of a new borrow request from the student portal."""
+    if request.method == 'POST':
+        catalog_item = get_object_or_404(CatalogItem, id=item_id)
+
+        # Get data from the modal form
+        quantity = int(request.POST.get('quantity', 1))
+        purpose = request.POST.get('purpose', '').strip()
+
+        # ADDED: Get the return date from the form
+        desired_return_date = request.POST.get('desired_return_date')
+
+        # Create the parent Borrow Request
+        borrow_req = BorrowRequest.objects.create(
+            owner=request.user,
+            purpose=purpose,
+            desired_return_date=desired_return_date,  # ADDED: Save to database
+            workflow_status='Pending'
+        )
+
+        # Create the specific Item entry linked to the request
+        RequestItem.objects.create(
+            borrow_request=borrow_req,
+            catalog_item=catalog_item,
+            quantity=quantity
+        )
+
+        messages.success(request, f"Your request for {quantity}x {catalog_item.name} has been submitted for review.")
+
+    return redirect('user_portal')
+
 def my_profile(request):
     return render(request, 'portal/my_profile.html')
+
+
