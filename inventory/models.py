@@ -89,6 +89,15 @@ class AuditLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     record_reference = models.CharField(max_length=255)
 
-class SystemSetting(models.Model):
+
+class SystemSettings(models.Model):
     max_loan_duration_days = models.IntegerField(default=7)
     max_quantity_per_item = models.IntegerField(default=3)
+
+    def save(self, *args, **kwargs):
+        # Force the ID to always be 1 so we never create duplicate settings rows
+        self.pk = 1
+        super(SystemSettings, self).save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = "System Settings"

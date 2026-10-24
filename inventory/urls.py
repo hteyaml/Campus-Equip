@@ -20,7 +20,7 @@ urlpatterns = [
     path('loan_reports_view/', views.loan_reports_view, name='loan_reports_view'),
     path('overdue-reports/', views.overdue_reports_view, name='overdue_reports'),
     path('audit/', views.audit_log_view, name='audit_log'),
-    path('settings/', views.operational_settings_view, name='operational_settings'),
+    path('settings/', views.operational_settings, name='operational_settings'),
 
 
     # Basic user routes

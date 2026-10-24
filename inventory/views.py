@@ -1,9 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, BorrowRequest, RequestItem
-from django.shortcuts import redirect
+from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, BorrowRequest, RequestItem, SystemSettings
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Count
 from .decorators import admin_required, basic_user_required
 from django.contrib import messages
 from django.utils import timezone
@@ -334,28 +333,125 @@ def audit_log_view(request):
     return render(request, 'admin/audit_log_view.html')
 
 @admin_required
-def operational_settings_view(request):
-    return render(request, 'admin/operational_settings_view.html')
+def operational_settings(request):
+    # Fetch the global settings row, or create it if it doesn't exist yet
+    current_settings, created = SystemSettings.objects.get_or_create(pk=1)
+
+    if request.method == 'POST':
+        # Retrieve the updated integer values from the form
+        max_duration = request.POST.get('max_loan_duration', 7)
+        max_qty = request.POST.get('max_quantity', 3)
+
+        # Save them to the database
+        current_settings.max_loan_duration_days = int(max_duration)
+        current_settings.max_quantity_per_item = int(max_qty)
+        current_settings.save()
+
+        messages.success(request, "Operational settings have been updated successfully.")
+        return redirect('operational_settings') # Ensure this matches your urls.py name
+
+    context = {
+        'current_settings': current_settings
+    }
+    return render(request, 'admin/operational_settings_view.html', context)
 
 
 
 @basic_user_required
 def user_portal(request):
-    return render(request, 'portal/browse_equipments.html')
 
+    search_query = request.GET.get('search', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+
+    # Annotate total physical units per catalog item
+    items = CatalogItem.objects.annotate(
+        total_units=Count('equipmentunit')
+    ).order_by('name')
+
+    # Apply search filter
+    if search_query:
+        items = items.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+
+    # Apply category filter
+    if category_filter:
+        items = items.filter(category__name=category_filter)
+
+    # Safely compute available units for each catalog item
+    for item in items:
+        # Access the related equipment units manager
+        units_manager = getattr(item, 'equipmentunit', None) or getattr(item, 'equipmentunit_set', None)
+        if units_manager:
+            try:
+                item.available_units = units_manager.filter(status='AVAILABLE').count()
+            except Exception:
+                # Fallback if status uses a foreign key / lookup
+                try:
+                    item.available_units = units_manager.filter(status__name='AVAILABLE').count()
+                except Exception:
+                    item.available_units = item.total_units
+        else:
+            item.available_units = 0
+
+    # Fetch unique categories for the filter dropdown
+    categories = CatalogItem.objects.values_list('category__name', flat=True).distinct()
+
+    context = {
+        'catalog_items': items,
+        'categories': categories,
+        'selected_category': category_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'portal/browse_equipments.html', context)
+
+
+@basic_user_required
 def my_requests(request):
-    return render(request, 'portal/my_requests.html')
+    # Fetch only the requests made by the currently logged-in student
+    # .order_by('-id') ensures the newest requests show up first
+    student_requests = BorrowRequest.objects.filter(owner=request.user).order_by('-id')
 
+    context = {
+        'requests': student_requests,
+    }
+
+    return render(request, 'portal/my_requests.html', context)
+
+
+@basic_user_required
 def my_profile(request):
-    return render(request, 'portal/my_profile.html')
+    user = request.user
 
+    # Safely fetch or create the linked profile so it doesn't crash if one is missing
+    profile, created = Profile.objects.get_or_create(user=user)
 
-@basic_user_required
-def user_portal(request):
-    return render(request, 'portal/browse_equipments.html')
+    if request.method == 'POST':
+        # Retrieve the updated fields from the HTML form
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        contact_number = request.POST.get('contact_number', '').strip()
 
-def my_requests(request):
-    return render(request, 'portal/my_requests.html')
+        # Update and save the core User model
+        user.first_name = first_name
+        user.last_name = last_name
+        user.save()
+
+        # Update and save the custom Profile model
+        profile.contact_number = contact_number
+        profile.save()
+
+        # Trigger a success banner on reload
+        messages.success(request, "Your profile has been updated successfully.")
+        return redirect('my_profile')  # Ensure this matches your urls.py path name
+
+    context = {
+        'user': user,
+        'profile': profile,
+    }
+
+    return render(request, 'portal/my_profile.html', context)
 
 @basic_user_required
 def submit_borrow_request(request, item_id):
@@ -373,7 +469,7 @@ def submit_borrow_request(request, item_id):
         # Create the parent Borrow Request
         borrow_req = BorrowRequest.objects.create(
             owner=request.user,
-            purpose=purpose,
+            item=catalog_item,
             desired_return_date=desired_return_date,  # ADDED: Save to database
             workflow_status='Pending'
         )
@@ -388,6 +484,3 @@ def submit_borrow_request(request, item_id):
         messages.success(request, f"Your request for {quantity}x {catalog_item.name} has been submitted for review.")
 
     return redirect('user_portal')
-
-def my_profile(request):
-    return render(request, 'portal/my_profile.html')
