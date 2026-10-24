@@ -40,7 +40,7 @@ class BorrowRequest(models.Model):
         ('Issued', 'Issued'), ('Rejected', 'Rejected'), ('Cancelled', 'Cancelled')
     ]
     owner = models.ForeignKey(User, on_delete=models.RESTRICT)
-    purpose = models.TextField()
+    item = models.ForeignKey(CatalogItem, on_delete=models.RESTRICT, null=True, blank=True)
     request_date = models.DateTimeField(auto_now_add=True)
     desired_return_date = models.DateField()
     workflow_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
