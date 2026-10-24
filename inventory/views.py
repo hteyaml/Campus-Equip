@@ -5,6 +5,13 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from .decorators import admin_required, basic_user_required
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.utils import timezone
+from django.db import transaction
+from django.db.models import Count, Q
+from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
+from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, MaintenanceRecord, Category
 from django.utils import timezone
 import csv
 from django.http import HttpResponse
@@ -56,7 +63,6 @@ def signup(request):
 
     # If it's a GET request, just render the empty form
     return render(request, 'signup.html')
-
 
 @login_required
 def role_redirect(request):
@@ -539,3 +545,172 @@ def my_profile(request):
 
 # --- Loan & Overdue Reports backend ---
 from .report_views import loan_reports_view, overdue_reports_view  # noqa: E402,F401
+
+
+STATUS_KEYS = ['Available', 'Reserved', 'Issued', 'Maintenance', 'Retired']
+
+
+def _audit(request, action, reference):
+    AuditLog.objects.create(actor=request.user, action=action, record_reference=reference)
+
+
+@admin_required
+def maintenance_register_view(request):
+    records = MaintenanceRecord.objects.select_related(
+        'unit__catalog_item__category', 'responsible_admin'
+    ).order_by('-id')
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        records = records.filter(
+            Q(unit__asset_code__icontains=search) | Q(unit__catalog_item__name__icontains=search)
+        )
+    status = request.GET.get('status', '')
+    if status in ('Open', 'Closed'):
+        records = records.filter(status=status)
+    category = request.GET.get('category', '')
+    if category.isdigit():
+        records = records.filter(unit__catalog_item__category_id=category)
+
+    page_obj = Paginator(records, 10).get_page(request.GET.get('page'))
+
+    # Summary cards (all records, not just the filtered ones)
+    closed = MaintenanceRecord.objects.filter(status='Closed', date_closed__isnull=False)
+    days = [(r.date_closed - r.date_opened).days for r in closed]
+    stats = {
+        'open': MaintenanceRecord.objects.filter(status='Open').count(),
+        # closed tickets whose unit went back into service
+        'repaired': closed.exclude(unit__inventory_status='Retired').count(),
+        'retired': EquipmentUnit.objects.filter(inventory_status='Retired').count(),
+        'avg_days': round(sum(days) / len(days), 1) if days else 0,
+    }
+
+    context = {
+        'records': page_obj,
+        'page_obj': page_obj,
+        'stats': stats,
+        'categories': Category.objects.filter(is_archived=False).order_by('name'),
+        # Only Available units may be placed in maintenance
+        'units': EquipmentUnit.objects.filter(inventory_status='Available')
+                              .select_related('catalog_item').order_by('asset_code'),
+        'today': timezone.localdate(),
+    }
+    return render(request, 'admin/maintenance_register.html', context)
+
+
+@admin_required
+@require_POST
+def open_maintenance(request):
+    unit_id = request.POST.get('unit', '')
+    problem = (request.POST.get('problem') or '').strip()
+    if not unit_id.isdigit() or not problem:
+        messages.error(request, 'Choose a unit and describe the problem.')
+        return redirect('maintenance_register')
+
+    with transaction.atomic():
+        unit = get_object_or_404(EquipmentUnit.objects.select_for_update(), pk=unit_id)
+
+        if unit.inventory_status in ('Issued', 'Reserved'):
+            messages.error(
+                request,
+                f'{unit.asset_code} is currently {unit.inventory_status.lower()} and cannot be placed '
+                f'in maintenance. Release or cancel the loan first.')
+            return redirect('maintenance_register')
+        if unit.inventory_status != 'Available':
+            messages.error(
+                request, f'{unit.asset_code} is {unit.inventory_status.lower()} and cannot be placed in maintenance.')
+            return redirect('maintenance_register')
+
+        record = MaintenanceRecord.objects.create(
+            unit=unit, problem=problem, responsible_admin=request.user)
+        unit.inventory_status = 'Maintenance'
+        unit.save(update_fields=['inventory_status'])
+        _audit(request, 'Opened maintenance ticket', f'MNT-{record.id} / {unit.asset_code}')
+
+    messages.success(request, f'Ticket #MNT-{record.id} opened for {unit.asset_code}.')
+    return redirect('maintenance_register')
+
+
+@admin_required
+@require_POST
+def close_maintenance(request, record_id):
+    action_taken = (request.POST.get('action_taken') or '').strip()
+    outcome = request.POST.get('outcome', '')
+    closed_on = parse_date(request.POST.get('closed_on') or '')
+
+    with transaction.atomic():
+        record = get_object_or_404(
+            MaintenanceRecord.objects.select_for_update().select_related('unit'), pk=record_id)
+        unit = record.unit
+
+        error = None
+        if record.status != 'Open':
+            error = f'Ticket #MNT-{record.id} is already closed.'
+        elif not action_taken:
+            error = 'Describe the action taken before closing the ticket.'
+        elif outcome not in ('repaired', 'retire'):
+            error = 'Choose an outcome: repaired or retire.'
+        elif closed_on is None:
+            error = 'Enter a valid closing date.'
+        elif closed_on < record.date_opened:
+            error = 'The closing date cannot be earlier than the date opened.'
+        elif closed_on > timezone.localdate():
+            error = 'The closing date cannot be in the future.'
+        if error:
+            messages.error(request, error)
+            return redirect('maintenance_register')
+
+        record.action_taken = action_taken
+        record.date_closed = closed_on
+        record.status = 'Closed'
+        record.save()
+
+        unit.inventory_status = 'Available' if outcome == 'repaired' else 'Retired'
+        unit.save(update_fields=['inventory_status'])
+        result = 'unit made Available' if outcome == 'repaired' else 'unit retired'
+        _audit(request, f'Closed maintenance ticket ({result})', f'MNT-{record.id} / {unit.asset_code}')
+
+    messages.success(request, f'Ticket #MNT-{record.id} closed: {result}.')
+    return redirect('maintenance_register')
+
+
+@admin_required
+def inventory_reconciliation_view(request):
+    # Overall counts, straight from the unit records
+    agg = EquipmentUnit.objects.aggregate(
+        total=Count('id'),
+        **{s.lower(): Count('id', filter=Q(inventory_status=s)) for s in STATUS_KEYS})
+    counted = sum(agg[s.lower()] for s in STATUS_KEYS)
+
+    # One row per catalog item
+    items = CatalogItem.objects.select_related('category').annotate(
+        units_total=Count('equipmentunit'),
+        **{f'n_{s.lower()}': Count('equipmentunit', filter=Q(equipmentunit__inventory_status=s))
+           for s in STATUS_KEYS}
+    ).order_by('name')
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        items = items.filter(name__icontains=search)
+    category = request.GET.get('category', '')
+    if category.isdigit():
+        items = items.filter(category_id=category)
+
+    rows = []
+    for it in items:
+        row = {'item': it, 'total': it.units_total}
+        for s in STATUS_KEYS:
+            row[s.lower()] = getattr(it, f'n_{s.lower()}')
+        row['balanced'] = sum(row[s.lower()] for s in STATUS_KEYS) == it.units_total
+        rows.append(row)
+
+    page_obj = Paginator(rows, 10).get_page(request.GET.get('page'))
+    context = {
+        'rows': page_obj,
+        'page_obj': page_obj,
+        'totals': agg,
+        'is_balanced': counted == agg['total'],
+        'discrepancy': abs(agg['total'] - counted),
+        'categories': Category.objects.filter(is_archived=False).order_by('name'),
+    }
+    return render(request, 'admin/inventory_reconciliation.html', context)

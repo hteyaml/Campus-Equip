@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 
+
 urlpatterns = [
 
     path('signup/', views.signup, name='signup'),
@@ -11,6 +12,12 @@ urlpatterns = [
     path('catalog/', include('inventory.catalog_urls')),
     path('manage/users/<int:user_id>/history/', views.user_history, name='user_history'),
     path('manage/users/<int:user_id>/toggle/', views.toggle_user_status, name='toggle_user_status'),
+
+    path('maintenance/', views.maintenance_register_view, name='maintenance_register'),
+    path('maintenance/open/', views.open_maintenance, name='open_maintenance'),
+    path('maintenance/<int:record_id>/close/', views.close_maintenance, name='close_maintenance'),
+    path('reconciliation/', views.inventory_reconciliation_view, name='inventory_reconciliation'),
+    path('loan-reports/', views.loan_reports_view, name='loan_reports'),
     path('equipment_list_view/', views.equipment_list_view, name='equipment_list_view'),
     path('review_queue/', views.review_queue, name='review_queue'),
     path('equipment_release/', views.equipment_release, name='equipment_release'),

@@ -12,10 +12,10 @@
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h4 class="fw-bold mb-1">Inventory Reconciliation</h4>
-        <p class="text-muted mb-0" style="font-size: 0.875rem">Every physical unit has exactly one status. These counts are read live from the unit records.</p>
+        <h3 class="fw-bold mb-1">Inventory Reconciliation</h3>
+        <p class="text-muted mb-0">Every physical unit has exactly one status. These counts are read live from the unit records.</p>
     </div>
-    <a href="?" class="btn btn-outline-dark" style="font-size: 0.875rem"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Counts</a>
+    <a href="?" class="btn btn-outline-dark"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Counts</a>
 </div>
 
 <!-- Counts by status (BACKEND: totals.available / reserved / issued / maintenance / retired / total) -->
@@ -78,7 +78,7 @@
 
 <!-- Reconciliation result (text + icon, not color alone) -->
 {% if is_balanced %}
-<div class="alert alert-success d-flex align-items-start gap-2" role="status" >
+<div class="alert alert-success d-flex align-items-start gap-2" role="status">
     <i class="bi bi-check-circle-fill fs-5"></i>
     <div>
         <strong>Counts reconcile to the physical total.</strong><br>
@@ -86,7 +86,7 @@
     </div>
 </div>
 {% else %}
-<div class="alert alert-danger d-flex align-items-start gap-2" role="alert" style="font-size: 0.875rem">
+<div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
     <i class="bi bi-exclamation-triangle-fill fs-5"></i>
     <div>
         <strong>Counts do not reconcile.</strong><br>
@@ -102,13 +102,13 @@
             <label for="recSearch" class="form-label small fw-medium mb-1">Search</label>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" id="recSearch" name="search" class="form-control border-start-0 ps-0" style="font-size: 0.875rem"
+                <input type="text" id="recSearch" name="search" class="form-control border-start-0 ps-0"
                        placeholder="Catalog item name..." value="{{ request.GET.search }}">
             </div>
         </div>
         <div class="col-12 col-lg-4">
             <label for="recCategory" class="form-label small fw-medium mb-1">Category</label>
-            <select id="recCategory" name="category" class="form-select" style="font-size: 0.875rem">
+            <select id="recCategory" name="category" class="form-select">
                 <option value="">All categories</option>
                 {% for c in categories %}
                 <option value="{{ c.id }}" {% if request.GET.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
@@ -116,7 +116,7 @@
             </select>
         </div>
         <div class="col-12 col-lg-3 d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1" style="font-size: 0.875rem">Apply</button>
+            <button type="submit" class="btn btn-primary flex-grow-1">Apply</button>
             {% if request.GET.search or request.GET.category %}
                 <a href="?" class="btn btn-outline-secondary">Clear</a>
             {% endif %}
@@ -127,13 +127,13 @@
 <!-- Units by catalog item -->
 <div class="card border-0 shadow-sm rounded-3">
     <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
-        <span class="fw-bold" style="font-size: 0.875rem">Units by catalog item</span>
+        <span class="fw-bold">Units by catalog item</span>
         <small class="text-muted">
             {% if page_obj %}{{ page_obj.paginator.count }} item{{ page_obj.paginator.count|pluralize }}{% endif %}
         </small>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+        <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
                     <th scope="col" class="py-3 ps-4">Catalog item</th>
