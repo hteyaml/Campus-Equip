@@ -18,8 +18,10 @@ Including another URLconf
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from inventory import views as inventory_views
+from django.contrib import admin
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
 
     # Authentication Routes
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),

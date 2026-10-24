@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, BorrowRequest, RequestItem, SystemSettings
+from .models import ReturnRecord, Loan, CatalogItem, AuditLog, Profile, BorrowRequest, RequestItem, SystemSettings, UnitAllocation, EquipmentUnit
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from .decorators import admin_required, basic_user_required
@@ -186,17 +186,66 @@ def export_queue_csv(request):
 
     return response
 
+
 @admin_required
 def update_borrow_status(request, pk, new_status):
-    # Kunin ang partikular na borrow request o mag-return ng 404 kung wala
     borrow_req = get_object_or_404(BorrowRequest, pk=pk)
+    valid_statuses = ['Approved', 'Rejected', 'Issued', 'Returned', 'Cancelled']
 
-    valid_statuses = ['Approved','Rejected','Issued', 'Returned', 'Rejected', 'Cancelled']
     if new_status in valid_statuses:
+
+        # --- PREVIOUS LOGIC: Generate Loan Records on Issue ---
+        if new_status == 'Issued' and borrow_req.workflow_status != 'Issued':
+            loan, created = Loan.objects.get_or_create(
+                borrow_request=borrow_req,
+                defaults={
+                    'issue_actor': request.user,
+                    'due_date': borrow_req.desired_return_date,
+                    'issue_date': timezone.now()
+                }
+            )
+            for req_item in borrow_req.requestitem_set.all():
+                if not UnitAllocation.objects.filter(request_item=req_item, is_cancelled=False).exists():
+                    available_unit = EquipmentUnit.objects.filter(
+                        catalog_item=req_item.catalog_item,
+                        inventory_status='Available'
+                    ).first()
+
+                    if available_unit:
+                        UnitAllocation.objects.create(request_item=req_item, unit=available_unit)
+                        available_unit.inventory_status = 'Borrowed'
+                        available_unit.save()
+
+        # --- NEW LOGIC: Generate Return Records on Return ---
+        elif new_status == 'Returned' and borrow_req.workflow_status != 'Returned':
+            # 1. Find the active loan for this request
+            loan = Loan.objects.filter(borrow_request=borrow_req).first()
+
+            if loan:
+                # 2. Get all physical units allocated to this request
+                allocations = UnitAllocation.objects.filter(
+                    request_item__borrow_request=borrow_req,
+                    is_cancelled=False
+                )
+
+                for alloc in allocations:
+                    unit = alloc.unit
+
+                    # 3. Create the ReturnRecord so the teammate's reports detect the return
+                    ReturnRecord.objects.get_or_create(
+                        loan=loan,
+                        unit=unit,
+                        # If your ReturnRecord model requires more fields like 'return_date', add them to defaults here
+                    )
+
+                    # 4. Free up the physical unit for the next borrower
+                    unit.inventory_status = 'Available'
+                    unit.save()
+
+        # Update the main request status
         borrow_req.workflow_status = new_status
         borrow_req.save()
 
-    # return redirect('review_queue')
     return redirect(request.META.get('HTTP_REFERER', 'review_queue'))
 
 @admin_required
