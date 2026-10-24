@@ -10,6 +10,15 @@
 {% endblock %}
 
 {% block admin_content %}
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h3 class="fw-bold mb-1">Maintenance Register</h3>
@@ -87,8 +96,8 @@
             <label for="mntStatus" class="form-label small fw-medium mb-1">Status</label>
             <select id="mntStatus" name="status" class="form-select">
                 <option value="">All statuses</option>
-                <option value="OPEN"   {% if request.GET.status == 'OPEN' %}selected{% endif %}>Open</option>
-                <option value="CLOSED" {% if request.GET.status == 'CLOSED' %}selected{% endif %}>Closed</option>
+                <option value="Open"   {% if request.GET.status == 'Open' %}selected{% endif %}>Open</option>
+                <option value="Closed" {% if request.GET.status == 'Closed' %}selected{% endif %}>Closed</option>
             </select>
         </div>
         <div class="col-6 col-lg-3">
@@ -138,30 +147,29 @@
                     <td class="ps-4 fw-bold text-primary">#MNT-{{ r.id }}</td>
                     <td>
                         <span class="fw-medium text-dark">{{ r.unit.asset_code }}</span><br>
-                        <small class="text-muted">{{ r.unit.item.name }}</small><br>
-                        <small class="text-muted">{{ r.unit.item.category.name }}</small>
+                        <small class="text-muted">{{ r.unit.catalog_item.name }}</small><br>
+                        <small class="text-muted">{{ r.unit.catalog_item.category.name }}</small>
                     </td>
                     <td>{{ r.problem }}</td>
                     <td>{% if r.action_taken %}{{ r.action_taken }}{% else %}<small class="text-muted">Not recorded yet</small>{% endif %}</td>
                     <td>
-                        <small class="text-muted">Opened</small> {{ r.opened_on|date:"M d, Y" }}
-                        {% if r.closed_on %}<br><small class="text-muted">Closed</small> {{ r.closed_on|date:"M d, Y" }}{% endif %}
+                        <small class="text-muted">Opened</small> {{ r.date_opened|date:"M d, Y" }}
+                        {% if r.date_closed %}<br><small class="text-muted">Closed</small> {{ r.date_closed|date:"M d, Y" }}{% endif %}
                     </td>
-                    <td>{{ r.responsible_admin }}</td>
+                    <td>{{ r.responsible_admin.get_full_name|default:r.responsible_admin.username }}</td>
                     <td>
-                        {% if r.status == 'OPEN' %}
+                        {% if r.status == 'Open' %}
                             <span class="badge mnt-badge open"><i class="bi bi-wrench me-1"></i>Open</span>
                         {% else %}
                             <span class="badge mnt-badge closed"><i class="bi bi-check-circle me-1"></i>Closed</span>
                         {% endif %}
                     </td>
                     <td class="pe-4 text-end">
-                        {% if r.status == 'OPEN' %}
+                        {% if r.status == 'Open' %}
                         <button type="button" class="btn btn-sm btn-primary js-close-ticket"
                                 data-bs-toggle="modal" data-bs-target="#closeModal"
                                 data-ticket="#MNT-{{ r.id }}" data-asset="{{ r.unit.asset_code }}"
-                                {# BACKEND: replace with {% url 'your_close_maintenance_name' r.id %} #}
-                                data-action="/manage/maintenance/{{ r.id }}/close/">Close Ticket</button>
+                                data-action="{% url 'close_maintenance' r.id %}">Close Ticket</button>
                         {% else %}
                         <small class="text-muted">No action</small>
                         {% endif %}
@@ -211,10 +219,8 @@
 <!-- Log Maintenance Ticket -->
 <div class="modal fade" id="logModal" tabindex="-1" aria-labelledby="logModalTitle" aria-hidden="true">
     <div class="modal-dialog">
-        {# BACKEND: empty action posts to this same URL; set it to your create view if different #}
-        <form method="post" action="" class="modal-content">
+        <form method="post" action="{% url 'open_maintenance' %}" class="modal-content">
             {% csrf_token %}
-            <input type="hidden" name="form_type" value="log">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="logModalTitle">Log Maintenance Ticket</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -224,18 +230,15 @@
                     <label for="log-unit" class="form-label small fw-medium">Equipment unit</label>
                     <select id="log-unit" name="unit" class="form-select" required>
                         <option value="">Select a unit</option>
-                        {% for u in units %}<option value="{{ u.id }}">{{ u.asset_code }} - {{ u.item.name }}</option>{% endfor %}
+                        {% for u in units %}<option value="{{ u.id }}">{{ u.asset_code }} - {{ u.catalog_item.name }}</option>{% endfor %}
                     </select>
-                    <div class="form-text">Issued or reserved units are rejected.</div>
+                    <div class="form-text">Only Available units can be placed in maintenance.</div>
                 </div>
                 <div class="mb-3">
                     <label for="log-problem" class="form-label small fw-medium">Problem or defect</label>
                     <textarea id="log-problem" name="problem" class="form-control" rows="3" required></textarea>
                 </div>
-                <div>
-                    <label for="log-date" class="form-label small fw-medium">Date opened</label>
-                    <input id="log-date" type="date" name="opened_on" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
-                </div>
+                <p class="text-muted small mb-0">The date opened and your name are recorded automatically.</p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -250,7 +253,6 @@
     <div class="modal-dialog">
         <form method="post" action="" id="closeForm" class="modal-content">
             {% csrf_token %}
-            <input type="hidden" name="form_type" value="close">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="closeModalTitle">Close <span id="closeTicketLabel">ticket</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -270,7 +272,7 @@
                 </div>
                 <div>
                     <label for="close-date" class="form-label small fw-medium">Date closed</label>
-                    <input id="close-date" type="date" name="closed_on" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+                    <input id="close-date" type="date" name="closed_on" class="form-control" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" required>
                 </div>
             </div>
             <div class="modal-footer border-0">
