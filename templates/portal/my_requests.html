@@ -1,109 +1,114 @@
 {% extends 'base_user.html' %}
 
-{% block title %}My Requests | Campus Inventory{% endblock %}
+{% block extra_css %}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #0F172A;
+    }
+    .page-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .equipment-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background-color: #ffffff;
+    }
+    .equipment-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Added matching status badge styles based on your theme */
+    .badge-pending {
+        background-color: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .badge-approved {
+        background-color: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+    .badge-default {
+        background-color: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+</style>
+{% endblock %}
 
 {% block user_content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">My Requests & Loans</h3>
-        <p class="text-muted mb-0">Track your borrowing history, loan statuses, and due dates.</p>
+<div class="container-fluid py-4">
+
+    <!-- Page Header -->
+    <div class="mb-4 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+        <h2 class="page-title mb-1">My Requests</h2>
+        <small class="text-muted">Track the status and details of your borrowed equipment.</small>
     </div>
-    <!-- Quick link to go back to the Browse Catalog page to make a new request -->
-    <a href="{% url 'user_portal' %}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i> New Request
-    </a>
-</div>
 
-<!-- Main Tracking Table -->
-<div class="card border-0 shadow-sm rounded-3">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th scope="col" class="py-3 ps-4">Date Submitted</th>
-                    <th scope="col" class="py-3">Requested Items</th>
-                    <th scope="col" class="py-3">Status</th>
-                    <th scope="col" class="py-3">Due Date & Assets</th>
-                    <th scope="col" class="py-3 pe-4 text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Backend Integration: Loop through the user's specific requests -->
-                {% for req in borrow_requests %}
-                <tr>
-                    <td class="ps-4">
-                        <span class="fw-medium text-dark">{{ req.request_date|date:"M d, Y" }}</span><br>
-                        <small class="text-muted">{{ req.request_date|time:"H:i A" }}</small>
-                    </td>
+    <!-- Requests Grid -->
+    <div class="row g-4">
+        {% for req in requests %}
+            <div class="col-md-6 col-lg-4">
 
-                    <td>
-                        <!-- Loop through the individual items inside this specific request -->
-                        <ul class="list-unstyled mb-0">
-                            {% for item in req.requestitem_set.all %}
-                                <li>• {{ item.quantity }}x {{ item.catalog_item.name }}</li>
-                            {% endfor %}
-                        </ul>
-                    </td>
+                <!-- Styled Card matching Browse Equipments -->
+                <div class="card equipment-card h-100">
 
-                    <td>
-                        <!-- Dynamic Status Badges -->
+                    <!-- Card Header: ID and Status -->
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0;">
+                        <span class="fw-bold text-dark mb-0">REQ-{{ req.id|stringformat:"04d" }}</span>
+
+                        <!-- Themed Status Badges -->
                         {% if req.workflow_status == 'Pending' %}
-                            <span class="badge bg-warning text-dark">Pending</span>
+                            <span class="badge badge-pending px-2 py-1 fw-medium">Pending</span>
                         {% elif req.workflow_status == 'Approved' %}
-                            <span class="badge bg-info text-dark">Approved</span>
-                        {% elif req.workflow_status == 'Issued' %}
-                            <span class="badge bg-primary">Issued</span>
-                        {% elif req.workflow_status == 'Returned' %}
-                            <span class="badge bg-success">Returned</span>
-                        {% elif req.workflow_status == 'Overdue' %}
-                            <span class="badge bg-danger">Overdue</span>
+                            <span class="badge badge-approved px-2 py-1 fw-medium">Approved</span>
                         {% else %}
-                            <span class="badge bg-secondary">{{ req.workflow_status }}</span>
+                            <span class="badge badge-default px-2 py-1 fw-medium">{{ req.workflow_status }}</span>
                         {% endif %}
-                    </td>
+                    </div>
 
-                    <td>
-                        <!-- Only show due dates and asset codes if the loan is actually issued/approved -->
-                        {% if req.loan %}
-                            <span class="fw-medium text-danger">Due: {{ req.loan.due_date|date:"M d, Y" }}</span><br>
-                            <!-- List allocated asset codes for tracking -->
-                            {% for allocation in req.requestitem_set.first.unitallocation_set.all %}
-                                <small class="text-muted"><i class="bi bi-upc-scan me-1"></i>{{ allocation.unit.asset_code }}</small><br>
-                            {% endfor %}
-                        {% else %}
-                            <span class="text-muted">--</span>
-                        {% endif %}
-                    </td>
+                    <!-- Card Body: Request Details -->
+                    <div class="card-body text-dark py-4">
+                        <h5 class="page-title fs-5 mb-4">{{ req.item.name }}</h5>
 
-                    <td class="pe-4 text-end">
-                        <!-- Rule Enforcement: Users can only cancel Pending or Approved requests before issue -->
-                        {% if req.workflow_status == 'Pending' or req.workflow_status == 'Approved' %}
-                            <form method="POST" action="{% url 'cancel_request' req.id %}" onsubmit="return confirm('Are you sure you want to cancel this request? This action cannot be undone.');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-x-circle me-1"></i> Cancel
-                                </button>
-                            </form>
-                        {% else %}
-                            <button class="btn btn-sm btn-light text-muted" disabled>Locked</button>
-                        {% endif %}
-                    </td>
-                </tr>
-
-                <!-- Explicit Empty State Requirement -->
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center py-5">
-                        <div class="text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                            <h5>No Requests Found</h5>
-                            <p>You haven't submitted any equipment borrowing requests yet.</p>
+                        <div class="d-flex justify-content-between mb-3 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+                            <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Quantity:</span>
+                            <span class="fw-medium">
+                                {% for linked_item in req.requestitem_set.all %}
+                                    {{ linked_item.quantity }}
+                                {% empty %}
+                                    1
+                                {% endfor %}
+                            </span>
                         </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Desired Return:</span>
+                            <span class="fw-medium">
+                                {{ req.desired_return_date|date:"M d, Y"|default:"Not specified" }}
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% empty %}
+            <!-- Empty State Fallback styled to match the theme -->
+            <div class="col-12 text-center py-5 mt-4 equipment-card bg-light">
+                <div class="text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                    <h5 class="page-title fs-5 text-dark">No Requests Found</h5>
+                    <p class="mb-0">You have not submitted any equipment borrow requests yet.</p>
+                </div>
+            </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

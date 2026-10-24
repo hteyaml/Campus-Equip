@@ -15,11 +15,26 @@
     <p class="text-muted" style="font-size: 0.875rem">Configure global borrowing limits. Changes apply to all new requests.</p>
 </div>
 
+<!-- Django Success Messages -->
+{% if messages %}
+    <div class="row mb-3">
+        <div class="col-12 col-md-8 col-lg-6">
+            {% for message in messages %}
+                <div class="alert alert-success alert-dismissible fade show border-success-subtle bg-success-subtle text-success" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
 <div class="row">
     <div class="col-12 col-md-8 col-lg-6">
         <div class="card border-0 shadow-sm rounded-3 p-4">
 
-            <form method="POST" action="{% url 'operational_settings' %}">
+            <!-- Action left blank to submit directly to the current URL safely -->
+            <form method="POST" action="">
                 {% csrf_token %}
 
                 <h6 class="fw-bold mb-3 border-bottom pb-2">Borrowing Limits</h6>
@@ -35,7 +50,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label for="max_quantity" class="form-label fw-medium" >Maximum Quantity Per Item</label>
+                    <label for="max_quantity" class="form-label fw-medium">Maximum Quantity Per Item</label>
                     <div class="input-group">
                         <input type="number" class="form-control" id="max_quantity" name="max_quantity"
                                value="{{ current_settings.max_quantity_per_item|default:3 }}" min="1" required style="font-size: 0.875rem">

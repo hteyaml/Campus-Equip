@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, RequestItem
-from django.shortcuts import redirect
+from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, BorrowRequest, RequestItem, SystemSettings
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Q, Count
 from .decorators import admin_required, basic_user_required
 from django.contrib import messages
+from django.utils import timezone
+import csv
+from django.http import HttpResponse
 
 
 def signup(request):
@@ -55,6 +57,7 @@ def signup(request):
     # If it's a GET request, just render the empty form
     return render(request, 'signup.html')
 
+
 @login_required
 def role_redirect(request):
     # Check if the user has an active account
@@ -98,15 +101,166 @@ def equipment_list_view(request):
 
 @admin_required
 def review_queue(request):
-    return render(request, 'admin/review_queue.html')
+    borrow_requests = BorrowRequest.objects.all().order_by('-request_date')
+
+    search_query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    date_filter = request.GET.get('date', '')
+
+    if search_query:
+        borrow_requests = borrow_requests.filter(
+            Q(id__icontains=search_query) |
+            Q(owner__username__icontains=search_query) |
+            Q(item__name__icontains=search_query) |
+            Q(purpose__icontains=search_query)
+        )
+
+    if status_filter:
+        borrow_requests = borrow_requests.filter(workflow_status=status_filter)
+
+    if date_filter:
+        borrow_requests = borrow_requests.filter(request_date__date=date_filter)
+
+    pending_count = BorrowRequest.objects.filter(workflow_status='Pending').count()
+    approved_count = BorrowRequest.objects.filter(workflow_status='Approved').count()
+
+    context = {
+        'borrow_requests': borrow_requests,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'date_filter': date_filter,
+    }
+
+    return render(request, 'admin/review_queue.html', context)
+
+
+@admin_required
+def export_queue_csv(request):
+    # Kopyahin ang parehong filtering logic mula sa review_queue view
+    borrow_requests = BorrowRequest.objects.all().order_by('-request_date')
+
+    search_query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    date_filter = request.GET.get('date', '')
+
+    if search_query:
+        borrow_requests = borrow_requests.filter(
+            Q(id__icontains=search_query) |
+            Q(owner__username__icontains=search_query) |
+            Q(item__name__icontains=search_query) |
+            Q(purpose__icontains=search_query)
+        )
+
+    if status_filter:
+        borrow_requests = borrow_requests.filter(workflow_status=status_filter)
+
+    if date_filter:
+        borrow_requests = borrow_requests.filter(request_date__date=date_filter)
+
+    # I-setup ang HTTP response para sa CSV download
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="review_queue_export.csv"'
+
+    writer = csv.writer(response)
+    # Sulatan ng column headers ang CSV
+    writer.writerow(
+        ['Request ID', 'Borrower', 'Item Request', 'Category', 'Request Date', 'Anticipated Return', 'Status'])
+
+    # Ilagay ang bawat row ng data mula sa database
+    for req in borrow_requests:
+        borrower_name = req.owner.username if req.owner else f"User #{req.owner_id}"
+        item_name = req.item.name if req.item else "No item linked"
+        category_name = req.item.category.name if (req.item and req.item.category) else ""
+
+        writer.writerow([
+            f"#REQ-{req.id}",
+            borrower_name,
+            item_name,
+            category_name,
+            req.request_date.strftime("%Y-%m-%d %H:%M") if req.request_date else "",
+            req.desired_return_date.strftime("%Y-%m-%d") if req.desired_return_date else "",
+            req.workflow_status
+        ])
+
+    return response
+
+@admin_required
+def update_borrow_status(request, pk, new_status):
+    # Kunin ang partikular na borrow request o mag-return ng 404 kung wala
+    borrow_req = get_object_or_404(BorrowRequest, pk=pk)
+
+    valid_statuses = ['Approved','Rejected','Issued', 'Returned', 'Rejected', 'Cancelled']
+    if new_status in valid_statuses:
+        borrow_req.workflow_status = new_status
+        borrow_req.save()
+
+    # return redirect('review_queue')
+    return redirect(request.META.get('HTTP_REFERER', 'review_queue'))
 
 @admin_required
 def equipment_release(request):
-    return render(request, 'admin/equipment_release.html')
+    requests_query = BorrowRequest.objects.filter(
+        workflow_status__in=['Approved', 'Issued']
+    ).order_by('-request_date')
+
+    # Search at Filter parameters
+    search_query = request.GET.get('q', '')
+
+    if search_query:
+        requests_query = requests_query.filter(
+            Q(id__icontains=search_query.replace('#REQ-', '')) |
+            Q(owner__username__icontains=search_query) |
+            Q(item__name__icontains=search_query)
+        )
+
+
+    ready_count = BorrowRequest.objects.filter(workflow_status='Approved').count()
+    dispatched_count = BorrowRequest.objects.filter(workflow_status='Issued').count()
+    tag_verification_count = BorrowRequest.objects.filter(
+        workflow_status='Pending').count()
+
+    context = {
+        'borrow_requests': requests_query,
+        'ready_count': ready_count,
+        'dispatched_count': dispatched_count,
+        'tag_verification_count': tag_verification_count,
+        'search_query': search_query,
+    }
+
+    return render(request, 'admin/equipment_release.html', context)
 
 @admin_required
 def return_overdue(request):
-    return render(request, 'admin/return_overdue.html')
+    today = timezone.now().date()
+
+    # Kunin ang lahat ng kagamitang nailabas na (Issued)
+    issued_requests = BorrowRequest.objects.filter(workflow_status='Issued')
+
+    # 1. Active Deployments: Issued status at HINDI PA overdue (desired_return_date >= today)
+    active_loans = issued_requests.filter(desired_return_date__gte=today).order_by('desired_return_date')
+
+    # 2. Overdue Delinquencies: Issued status at OVERDUE NA (desired_return_date < today)
+    overdue_loans = issued_requests.filter(desired_return_date__lt=today).order_by('desired_return_date')
+
+    # Metrics computation
+    active_count = active_loans.count()
+    overdue_count = overdue_loans.count()
+
+    # Optional counter para sa maintenance/returned routing
+    returned_count = BorrowRequest.objects.filter(workflow_status='Returned').count()
+
+    context = {
+        'active_loans': active_loans,
+        'overdue_loans': overdue_loans,
+        'active_count': active_count,
+        'overdue_count': overdue_count,
+        'returned_count': returned_count,
+        'today': today,
+    }
+
+    return render(request, 'admin/return_overdue.html', context)
 
 @admin_required
 def maintenance_register(request):
@@ -179,17 +333,33 @@ def audit_log_view(request):
     return render(request, 'admin/audit_log_view.html')
 
 @admin_required
-def operational_settings_view(request):
-    return render(request, 'admin/operational_settings_view.html')
+def operational_settings(request):
+    # Fetch the global settings row, or create it if it doesn't exist yet
+    current_settings, created = SystemSettings.objects.get_or_create(pk=1)
+
+    if request.method == 'POST':
+        # Retrieve the updated integer values from the form
+        max_duration = request.POST.get('max_loan_duration', 7)
+        max_qty = request.POST.get('max_quantity', 3)
+
+        # Save them to the database
+        current_settings.max_loan_duration_days = int(max_duration)
+        current_settings.max_quantity_per_item = int(max_qty)
+        current_settings.save()
+
+        messages.success(request, "Operational settings have been updated successfully.")
+        return redirect('operational_settings') # Ensure this matches your urls.py name
+
+    context = {
+        'current_settings': current_settings
+    }
+    return render(request, 'admin/operational_settings_view.html', context)
 
 
 
 @basic_user_required
 def user_portal(request):
-    """
-    Displays equipment catalog for student browsing with search,
-    category filtering, and real-time availability counts.
-    """
+
     search_query = request.GET.get('search', '').strip()
     category_filter = request.GET.get('category', '').strip()
 
@@ -207,7 +377,7 @@ def user_portal(request):
 
     # Apply category filter
     if category_filter:
-        items = items.filter(category_id=category_filter)
+        items = items.filter(category__name=category_filter)
 
     # Safely compute available units for each catalog item
     for item in items:
@@ -236,9 +406,52 @@ def user_portal(request):
     }
     return render(request, 'portal/browse_equipments.html', context)
 
-def my_requests(request):
-    return render(request, 'portal/my_requests.html')
 
+@basic_user_required
+def my_requests(request):
+    # Fetch only the requests made by the currently logged-in student
+    # .order_by('-id') ensures the newest requests show up first
+    student_requests = BorrowRequest.objects.filter(owner=request.user).order_by('-id')
+
+    context = {
+        'requests': student_requests,
+    }
+
+    return render(request, 'portal/my_requests.html', context)
+
+
+@basic_user_required
+def my_profile(request):
+    user = request.user
+
+    # Safely fetch or create the linked profile so it doesn't crash if one is missing
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    if request.method == 'POST':
+        # Retrieve the updated fields from the HTML form
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        contact_number = request.POST.get('contact_number', '').strip()
+
+        # Update and save the core User model
+        user.first_name = first_name
+        user.last_name = last_name
+        user.save()
+
+        # Update and save the custom Profile model
+        profile.contact_number = contact_number
+        profile.save()
+
+        # Trigger a success banner on reload
+        messages.success(request, "Your profile has been updated successfully.")
+        return redirect('my_profile')  # Ensure this matches your urls.py path name
+
+    context = {
+        'user': user,
+        'profile': profile,
+    }
+
+    return render(request, 'portal/my_profile.html', context)
 
 @basic_user_required
 def submit_borrow_request(request, item_id):
@@ -256,7 +469,7 @@ def submit_borrow_request(request, item_id):
         # Create the parent Borrow Request
         borrow_req = BorrowRequest.objects.create(
             owner=request.user,
-            purpose=purpose,
+            item=catalog_item,
             desired_return_date=desired_return_date,  # ADDED: Save to database
             workflow_status='Pending'
         )
@@ -277,5 +490,3 @@ def my_profile(request):
 
 # --- Loan & Overdue Reports backend ---
 from .report_views import loan_reports_view, overdue_reports_view  # noqa: E402,F401
-
-

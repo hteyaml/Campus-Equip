@@ -20,7 +20,7 @@ urlpatterns = [
     path('loan_reports_view/', views.loan_reports_view, name='loan_reports_view'),
     path('overdue-reports/', views.overdue_reports_view, name='overdue_reports'),
     path('audit/', views.audit_log_view, name='audit_log'),
-    path('settings/', views.operational_settings_view, name='operational_settings'),
+    path('settings/', views.operational_settings, name='operational_settings'),
 
 
     # Basic user routes
@@ -29,6 +29,12 @@ urlpatterns = [
     path('portal/my-requests/submit/<int:item_id>/', views.submit_borrow_request, name='submit_borrow_request'),
     path('my-profile/', views.my_profile, name='my_profile'),
     path('loan-reports/', views.loan_reports_view, name='loan_reports'),     # Alias used by the "Clear" button in loan_reports_view.html
+
+
+
+    path('borrow-request/<int:pk>/update-status/<str:new_status>/', views.update_borrow_status, name='update_borrow_status'),
+    path('return-overdue/', views.return_overdue, name='return_overdue'),
+    path('review-queue/export/csv/', views.export_queue_csv, name='export_queue_csv'),
 
 
 ]
