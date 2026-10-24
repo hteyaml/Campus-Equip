@@ -113,7 +113,8 @@
         <table class="table table-hover align-middle mb-0 report-table" style="font-size: 0.875rem">
             <thead class="table-light">
                 <tr>
-                    <th scope="col" class="py-3 ps-4">Borrower</th>
+                    <th scope="col" class="py-3 ps-4">Request ID</th>
+                    <th scope="col" class="py-3">Borrower</th>
                     <th scope="col" class="py-3">Outstanding units</th>
                     <th scope="col" class="py-3">Due date</th>
                     <th scope="col" class="py-3 text-center">Days overdue</th>
@@ -124,14 +125,15 @@
                 <!-- Backend Integration: days_overdue = (today - due_date).days, 0 on/before due date -->
                 {% for loan in overdue_loans %}
                 <tr>
-                    <td class="ps-4">
-                        <span class="fw-medium text-dark">{{ loan.request.owner.first_name }} {{ loan.request.owner.last_name }}</span><br>
-                        <small class="text-muted">{{ loan.request.owner.username }} &middot; {{ loan.request.owner.profile.contact_number|default:"No contact" }}</small>
+                    <td class="ps-4 fw-bold text-primary">#REQ-{{ loan.request.id }}</td>
+                    <td>
+                        <span class="report-borrower-name">{{ loan.request.owner.first_name }} {{ loan.request.owner.last_name }}</span>
+                        <span class="report-borrower-sub">{{ loan.request.owner.username }}</span>
                     </td>
                     <td>
-                        <ul class="list-unstyled mb-0 small">
+                        <ul class="list-unstyled mb-0">
                             {% for unit in loan.outstanding_units %}
-                                <li>• {{ unit.catalog_item.name }} <code class="report-ref">{{ unit.asset_code }}</code></li>
+                                <li>{{ unit.catalog_item.name }} <code class="report-ref">{{ unit.asset_code }}</code></li>
                             {% endfor %}
                         </ul>
                     </td>
@@ -150,7 +152,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-5">
+                    <td colspan="6" class="text-center py-5">
                         <div class="text-muted">
                             <i class="bi bi-check2-circle fs-1 d-block mb-3"></i>
                             <h5>No Overdue Loans</h5>

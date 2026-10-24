@@ -28,5 +28,7 @@ urlpatterns = [
     path('my-requests/', views.my_requests, name='my_requests'),
     path('portal/my-requests/submit/<int:item_id>/', views.submit_borrow_request, name='submit_borrow_request'),
     path('my-profile/', views.my_profile, name='my_profile'),
+    path('loan-reports/', views.loan_reports_view, name='loan_reports'),     # Alias used by the "Clear" button in loan_reports_view.html
+
 
 ]

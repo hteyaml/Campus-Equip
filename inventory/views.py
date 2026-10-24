@@ -275,4 +275,7 @@ def submit_borrow_request(request, item_id):
 def my_profile(request):
     return render(request, 'portal/my_profile.html')
 
+# --- Loan & Overdue Reports backend ---
+from .report_views import loan_reports_view, overdue_reports_view  # noqa: E402,F401
+
 
