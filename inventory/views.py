@@ -1,21 +1,33 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.models import User
-from .models import ReturnRecord, Loan, CatalogItem, AuditLog, Profile, BorrowRequest, RequestItem, SystemSettings, UnitAllocation, EquipmentUnit
-from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Count
-from .decorators import admin_required, basic_user_required
+import csv
+
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.utils import timezone
 from django.db import transaction
 from django.db.models import Count, Q
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
-from .models import EquipmentUnit, BorrowRequest, Loan, CatalogItem, AuditLog, Profile, MaintenanceRecord, Category
-from django.utils import timezone
-import csv
-from django.http import HttpResponse
+from datetime import timedelta
 
+from .decorators import admin_required, basic_user_required
+from .models import (
+    AuditLog,
+    BorrowRequest,
+    CatalogItem,
+    Category,
+    EquipmentUnit,
+    Loan,
+    MaintenanceRecord,
+    Profile,
+    RequestItem,
+    ReturnRecord,
+    SystemSettings,
+    UnitAllocation,
+)
 
 def signup(request):
     # If the user is already logged in, redirect them away from the signup page
@@ -82,24 +94,31 @@ def role_redirect(request):
     # Fallback if something goes wrong
     return redirect('login')
 
+
 @admin_required
 def admin_dashboard(request):
-    # We will pass live database metrics here later
+    today = timezone.now().date()
+
+    # Base query for currently deployed items
+    issued_requests = BorrowRequest.objects.filter(workflow_status='Issued')
+
     context = {
-        # Original 4 Metrics
+        # Core Metrics
         'available_units': EquipmentUnit.objects.filter(inventory_status='Available').count(),
         'pending_requests': BorrowRequest.objects.filter(workflow_status='Pending').count(),
-        'active_loans': Loan.objects.count(),  # Or count of non-returned loans
-        'overdue_loans': 0,  # Calculated dynamically based on due dates
+        'active_loans': issued_requests.filter(desired_return_date__gte=today).count(),
+        'overdue_loans': issued_requests.filter(desired_return_date__lt=today).count(),
 
-        # 5 New Metrics
+        # Secondary Metrics
         'maintenance_units': EquipmentUnit.objects.filter(inventory_status='Maintenance').count(),
         'reserved_units': EquipmentUnit.objects.filter(inventory_status='Reserved').count(),
         'active_users': User.objects.filter(profile__role='BASIC_USER', is_active=True).count(),
-        'active_catalog_items': CatalogItem.objects.filter(is_archived=False).count(),
+        'active_catalog_items': CatalogItem.objects.count(),
+
+        # Recent Audits
         'recent_audits': AuditLog.objects.select_related('actor').order_by('-timestamp')[:5],
     }
-    return render(request, 'admin/admin_dashboard.html')
+    return render(request, 'admin/admin_dashboard.html', context)
 
 @admin_required
 def equipment_list_view(request):
@@ -196,12 +215,33 @@ def export_queue_csv(request):
 @admin_required
 def update_borrow_status(request, pk, new_status):
     borrow_req = get_object_or_404(BorrowRequest, pk=pk)
+
+    # Block actions on terminal states
+    terminal_statuses = ['Returned', 'Rejected', 'Cancelled']
+    if borrow_req.workflow_status in terminal_statuses:
+        messages.error(request,
+                       f"Action denied: You cannot change the status of a {borrow_req.workflow_status} request.")
+        return redirect(request.META.get('HTTP_REFERER', 'review_queue'))
+
     valid_statuses = ['Approved', 'Rejected', 'Issued', 'Returned', 'Cancelled']
 
     if new_status in valid_statuses:
+        # 1. APPROVE: Reserve the units
+        if new_status == 'Approved' and borrow_req.workflow_status != 'Approved':
+            for req_item in borrow_req.requestitem_set.all():
+                if not UnitAllocation.objects.filter(request_item=req_item, is_cancelled=False).exists():
+                    available_units = EquipmentUnit.objects.filter(
+                        catalog_item=req_item.catalog_item,
+                        inventory_status='Available'
+                    )[:req_item.quantity]
 
-        # --- PREVIOUS LOGIC: Generate Loan Records on Issue ---
-        if new_status == 'Issued' and borrow_req.workflow_status != 'Issued':
+                    for unit in available_units:
+                        UnitAllocation.objects.create(request_item=req_item, unit=unit)
+                        unit.inventory_status = 'Reserved'
+                        unit.save()
+
+        # 2. ISSUE: Create Loan and mark reserved units as Issued
+        elif new_status == 'Issued' and borrow_req.workflow_status != 'Issued':
             loan, created = Loan.objects.get_or_create(
                 borrow_request=borrow_req,
                 defaults={
@@ -210,47 +250,45 @@ def update_borrow_status(request, pk, new_status):
                     'issue_date': timezone.now()
                 }
             )
-            for req_item in borrow_req.requestitem_set.all():
-                if not UnitAllocation.objects.filter(request_item=req_item, is_cancelled=False).exists():
-                    available_unit = EquipmentUnit.objects.filter(
-                        catalog_item=req_item.catalog_item,
-                        inventory_status='Available'
-                    ).first()
+            allocations = UnitAllocation.objects.filter(request_item__borrow_request=borrow_req, is_cancelled=False)
+            for alloc in allocations:
+                unit = alloc.unit
+                unit.inventory_status = 'Issued'
+                unit.save()
 
-                    if available_unit:
-                        UnitAllocation.objects.create(request_item=req_item, unit=available_unit)
-                        available_unit.inventory_status = 'Borrowed'
-                        available_unit.save()
-
-        # --- NEW LOGIC: Generate Return Records on Return ---
+        # 3. RETURN: Create ReturnRecord and free units back to Available
         elif new_status == 'Returned' and borrow_req.workflow_status != 'Returned':
-            # 1. Find the active loan for this request
             loan = Loan.objects.filter(borrow_request=borrow_req).first()
-
             if loan:
-                # 2. Get all physical units allocated to this request
-                allocations = UnitAllocation.objects.filter(
-                    request_item__borrow_request=borrow_req,
-                    is_cancelled=False
-                )
-
+                allocations = UnitAllocation.objects.filter(request_item__borrow_request=borrow_req, is_cancelled=False)
                 for alloc in allocations:
                     unit = alloc.unit
-
-                    # 3. Create the ReturnRecord so the teammate's reports detect the return
-                    ReturnRecord.objects.get_or_create(
-                        loan=loan,
-                        unit=unit,
-                        # If your ReturnRecord model requires more fields like 'return_date', add them to defaults here
-                    )
-
-                    # 4. Free up the physical unit for the next borrower
+                    ReturnRecord.objects.get_or_create(loan=loan, unit=unit)
                     unit.inventory_status = 'Available'
                     unit.save()
+
+        # 4. CANCEL/REJECT: Free up reserved units
+        elif new_status in ['Cancelled', 'Rejected']:
+            allocations = UnitAllocation.objects.filter(request_item__borrow_request=borrow_req, is_cancelled=False)
+            for alloc in allocations:
+                unit = alloc.unit
+                unit.inventory_status = 'Available'
+                unit.save()
+                alloc.is_cancelled = True
+                alloc.save()
+
+        # --- NEW LOGIC: Record the action in the Audit Log ---
+        AuditLog.objects.create(
+            actor=request.user,
+            action=f"Updated request status to {new_status}",
+            record_reference=f"#REQ-{borrow_req.id}"
+        )
 
         # Update the main request status
         borrow_req.workflow_status = new_status
         borrow_req.save()
+
+        messages.success(request, f"Request #REQ-{borrow_req.id} successfully marked as {new_status}.")
 
     return redirect(request.META.get('HTTP_REFERER', 'review_queue'))
 
@@ -318,14 +356,6 @@ def return_overdue(request):
     return render(request, 'admin/return_overdue.html', context)
 
 @admin_required
-def maintenance_register(request):
-    return render(request, 'admin/maintenance_register.html')
-
-@admin_required
-def inventory_reconciliation(request):
-    return render(request, 'admin/inventory_reconciliation.html')
-
-@admin_required
 def user_accounts_view(request):
     # Base query: Fetch ONLY users who have the BASIC_USER role profile
     users_query = User.objects.filter(profile__role='BASIC_USER').order_by('-date_joined')
@@ -385,7 +415,30 @@ def overdue_reports_view(request):
 
 @admin_required
 def audit_log_view(request):
-    return render(request, 'admin/audit_log_view.html')
+    # Fetch all logs, ordering by newest first
+    logs_query = AuditLog.objects.select_related('actor').order_by('-timestamp')
+
+    # Handle Search Bar
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        logs_query = logs_query.filter(
+            Q(actor__username__icontains=search_query) |
+            Q(actor__first_name__icontains=search_query) |
+            Q(actor__last_name__icontains=search_query) |
+            Q(action__icontains=search_query) |
+            Q(record_reference__icontains=search_query)
+        )
+
+    # Paginate results (15 records per page)
+    paginator = Paginator(logs_query, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'logs': page_obj,
+        'search_query': search_query,
+    }
+    return render(request, 'admin/audit_log_view.html', context)
 
 @admin_required
 def operational_settings(request):
@@ -411,53 +464,49 @@ def operational_settings(request):
     return render(request, 'admin/operational_settings_view.html', context)
 
 
-
 @basic_user_required
 def user_portal(request):
-
     search_query = request.GET.get('search', '').strip()
     category_filter = request.GET.get('category', '').strip()
 
-    # Annotate total physical units per catalog item
     items = CatalogItem.objects.annotate(
-        total_units=Count('equipmentunit')
+        total_units=Count('equipmentunit', distinct=True),
+        available_units=Count(
+            'equipmentunit',
+            filter=Q(equipmentunit__inventory_status='Available'),
+            distinct=True
+        )
     ).order_by('name')
 
-    # Apply search filter
     if search_query:
         items = items.filter(
             Q(name__icontains=search_query) |
             Q(description__icontains=search_query)
         )
 
-    # Apply category filter
     if category_filter:
         items = items.filter(category__name=category_filter)
 
-    # Safely compute available units for each catalog item
-    for item in items:
-        # Access the related equipment units manager
-        units_manager = getattr(item, 'equipmentunit', None) or getattr(item, 'equipmentunit_set', None)
-        if units_manager:
-            try:
-                item.available_units = units_manager.filter(status='AVAILABLE').count()
-            except Exception:
-                # Fallback if status uses a foreign key / lookup
-                try:
-                    item.available_units = units_manager.filter(status__name='AVAILABLE').count()
-                except Exception:
-                    item.available_units = item.total_units
-        else:
-            item.available_units = 0
-
-    # Fetch unique categories for the filter dropdown
     categories = CatalogItem.objects.values_list('category__name', flat=True).distinct()
+
+    # --- NEW LOGIC: Calculate date limits for the Request Modal ---
+    settings = SystemSettings.objects.first()
+    max_days = settings.max_loan_duration_days if settings else 7
+    max_qty = settings.max_quantity_per_item if settings else 3
+
+    today = timezone.localdate()
+    min_date = today.strftime('%Y-%m-%d')
+    max_date = (today + timedelta(days=max_days)).strftime('%Y-%m-%d')
 
     context = {
         'catalog_items': items,
         'categories': categories,
         'selected_category': category_filter,
         'search_query': search_query,
+        'min_date': min_date,
+        'max_date': max_date,
+        'max_days': max_days,
+        'max_qty': max_qty,
     }
     return render(request, 'portal/browse_equipments.html', context)
 

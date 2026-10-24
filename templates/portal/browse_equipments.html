@@ -153,13 +153,17 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-medium">Quantity Needed</label>
-                        <!-- ADDED: name="quantity" and required -->
-                        <input type="number" name="quantity" class="form-control" min="1" max="{{ item.available_units }}" value="1" required>
+                        <!-- ADDED: Uses system max_qty setting dynamically -->
+                        <input type="number" name="quantity" class="form-control" min="1" max="{% if item.available_units < max_qty %}{{ item.available_units }}{% else %}{{ max_qty }}{% endif %}" value="1" required>
+                        <small class="text-muted" style="font-size: 0.7rem;">Max limit: {{ max_qty }} per request</small>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label small fw-medium">Desired Return Date</label>
-                        <input type="date" name="desired_return_date" class="form-control" required>
+                        <!-- ADDED: min and max attributes tied to the system settings -->
+                        <input type="date" name="desired_return_date" class="form-control"
+                               min="{{ min_date }}" max="{{ max_date }}" required>
+                        <small class="text-muted" style="font-size: 0.7rem;">Maximum duration: {{ max_days }} days</small>
                     </div>
 
                     <div class="mb-3">
