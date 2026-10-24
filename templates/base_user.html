@@ -1,12 +1,36 @@
 {% extends 'base.html' %}
 
+<!-- 1. OVERRIDE THE MESSAGES BLOCK -->
+{% block messages %}
+    {% if messages %}
+        <!-- Hidden HTML to store the messages safely -->
+        <div id="django-messages" style="display: none;">
+            {% for message in messages %}
+                <span class="system-msg" data-text="{{ message }}"></span>
+            {% endfor %}
+        </div>
+
+        <!-- Pure JavaScript popup for user portal -->
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const messageElements = document.querySelectorAll('.system-msg');
+                messageElements.forEach(function(element) {
+                    alert(element.getAttribute('data-text'));
+                });
+            });
+        </script>
+    {% endif %}
+{% endblock %}
+
+<!-- 2. YOUR NORMAL LAYOUT BLOCK -->
 {% block layout %}
 <div class="d-flex" id="wrapper" style="min-height: 100vh;">
     {% include 'components/user_sidebar.html' %}
 
     <!-- Container for Student Content -->
     <div class="flex-grow-1 p-4" style="min-height: 100vh; background-color: #f8f9fa;">
-        {% block user_content %}{% endblock %}
+        {% block user_content %}
+        {% endblock %}
     </div>
 </div>
 {% endblock %}
