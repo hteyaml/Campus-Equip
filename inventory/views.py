@@ -575,6 +575,7 @@ def submit_borrow_request(request, item_id):
             owner=request.user,
             item=catalog_item,
             desired_return_date=desired_return_date,  # ADDED: Save to database
+            purpose=purpose,
             workflow_status='Pending'
         )
 

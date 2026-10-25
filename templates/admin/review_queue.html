@@ -140,7 +140,7 @@
                                     </span>
                                 </td>
 
-                                <!-- Purpose -->
+                                <!-- Purpose (Item Details) -->
                                 <td>
                                     {% if req.item %}
                                         <span class="text-dark fw-medium">{{ req.item.name }}</span><br>
@@ -178,24 +178,22 @@
                                         <!-- Compact Dropdown Menu -->
                                         <ul class="dropdown-menu dropdown-menu-end shadow-sm fs-7 py-1 min-w-auto" style="min-width: 130px;">
                                             <li>
-                                                <a class="dropdown-item py-1 px-2.5 small d-flex align-items-center gap-2" href="#">
+                                                <!-- UPDATED: Added data attributes to trigger the modal -->
+                                                <a class="dropdown-item py-1 px-2.5 small d-flex align-items-center gap-2" href="#" data-bs-toggle="modal" data-bs-target="#reviewModal{{ req.id }}">
                                                     <i class="bi bi-eye text-primary"></i>
                                                     <span>Review</span>
                                                 </a>
                                             </li>
 
-                                            <!-- NEW LOGIC: Only show Approve/Reject for Pending requests -->
                                             {% if req.workflow_status == 'Pending' %}
                                                 <li><hr class="dropdown-divider my-1"></li>
                                                 <li>
-                                                    <!-- Approve Link -->
                                                     <a class="dropdown-item py-1 px-2.5 small d-flex align-items-center gap-2 text-success" href="{% url 'update_borrow_status' req.id 'Approved' %}">
                                                         <i class="bi bi-check-circle"></i>
                                                         <span>Approve</span>
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <!-- Reject Link -->
                                                     <a class="dropdown-item py-1 px-2.5 small d-flex align-items-center gap-2 text-danger" href="{% url 'update_borrow_status' req.id 'Rejected' %}">
                                                         <i class="bi bi-x-circle"></i>
                                                         <span>Reject</span>
@@ -213,6 +211,54 @@
                                     </div>
                                 </td>
                             </tr>
+
+                            <!-- NEW: Review Modal for each request -->
+                            <div class="modal fade" id="reviewModal{{ req.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-3 border-0 shadow">
+                                        <div class="modal-header border-0 pb-0">
+                                            <h5 class="fw-bold modal-title text-navy">Request Details (#REQ-{{ req.id }})</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body py-4">
+
+                                            <div class="mb-3">
+                                                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Borrower</span>
+                                                <p class="mb-0 fw-medium text-dark">
+                                                    {% if req.owner %}{{ req.owner.username }}{% else %}User #{{ req.owner_id }}{% endif %}
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Equipment Requested</span>
+                                                <p class="mb-0 fw-medium text-dark">
+                                                    {% if req.item %}{{ req.item.name }} ({{ req.item.category.name }}){% else %}No item linked{% endif %}
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Schedule</span>
+                                                <p class="mb-0 text-dark" style="font-size: 0.9rem;">
+                                                    <strong>Requested on:</strong> {{ req.request_date|date:"M d, Y H:i" }}<br>
+                                                    <strong>Anticipated Return:</strong> {{ req.desired_return_date|date:"M d, Y" }}
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-0">
+                                                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Reason / Purpose</span>
+                                                <div class="p-3 bg-light rounded mt-1 text-dark" style="font-size: 0.9rem;">
+                                                    {{ req.purpose|default:"No specific reason provided by the borrower." }}
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                        <div class="modal-footer border-0 pt-0">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         {% empty %}
                         <tr>
                             <td colspan="8" class="text-center py-5">

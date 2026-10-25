@@ -44,6 +44,7 @@ class BorrowRequest(models.Model):
     request_date = models.DateTimeField(auto_now_add=True)
     desired_return_date = models.DateField()
     workflow_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    purpose = models.TextField(blank=True, null=True)
 
 
 class RequestItem(models.Model):
