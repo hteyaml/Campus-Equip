@@ -26,29 +26,46 @@
 {% block layout %}
 <div class="d-flex" id="wrapper" style="min-height: 100vh;">
 
-    <!-- FIXED SIDEBAR -->
-    <div class="bg-dark text-white p-3 position-fixed top-0 start-0" style="width: 250px; height: 100vh; overflow-y: auto; z-index: 1040;">
-        <h5>Campus Portal</h5>
-        <ul class="nav flex-column mt-4">
+    <!-- FIXED SIDEBAR (same design as the admin sidebar) -->
+    <div class="bg-nav p-3 position-fixed top-0 start-0" style="height: 100vh; overflow-y: auto; z-index: 1040;">
+
+        <div class="nav-title-container mb-2">
+            <i class="bi bi-nut me-2 bold-icon"></i>
+            <div>
+                <p class="nav-title">Campus Equip</p>
+                <p class="nav-sub-title">Institutional Asset Portal</p>
+            </div>
+        </div>
+
+        <ul class="nav flex-column mt-3">
             <li class="nav-item mb-1">
-                <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'user_portal' %}">
-                    <i class="bi bi-columns-gap me-2"></i>Browse Equipments
+                <a class="nav-link px-3 py-2 bg-hover-link custom-nav-text
+                    {% if request.resolver_match.url_name == 'user_portal' %}active{% endif %}"
+                   href="{% url 'user_portal' %}">
+                    <i class="bi bi-columns-gap me-2 bold-icon"></i>Browse Equipments
                 </a>
             </li>
+
             <li class="nav-item mb-1">
-                <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'my_requests' %}">
-                    <i class="bi bi-card-list me-2"></i>My Requests
+                <a class="nav-link px-3 py-2 bg-hover-link custom-nav-text
+                    {% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}"
+                   href="{% url 'my_requests' %}">
+                    <i class="bi bi-card-list me-2 bold-icon"></i>My Requests
                 </a>
             </li>
+
             <li class="nav-item mb-1">
-                <a class="nav-link text-white px-3 py-2 bg-hover-link" href="{% url 'my_profile' %}">
-                    <i class="bi bi-person-circle me-2"></i>My Profile
+                <a class="nav-link px-3 py-2 bg-hover-link custom-nav-text
+                    {% if request.resolver_match.url_name == 'my_profile' %}active{% endif %}"
+                   href="{% url 'my_profile' %}">
+                    <i class="bi bi-person-circle me-2 bold-icon"></i>My Profile
                 </a>
             </li>
+
             <li class="nav-item mb-1 mt-auto">
                 <form method="POST" action="{% url 'logout' %}">
                      {% csrf_token %}
-                     <button type="submit" class="nav-link text-white px-3 py-2 bg-hover-link w-100 text-start border-0 bg-transparent">
+                     <button type="submit" class="nav-link px-3 py-2 bg-hover-link custom-nav-text text-start w-100 bg-transparent">
                      <i class="bi bi-box-arrow-right me-2"></i>Logout
                      </button>
                 </form>
@@ -57,7 +74,7 @@
     </div>
 
     <!-- Container for Student Content (margin-left matching the sidebar width) -->
-    <div class="flex-grow-1 p-4 w-100" style="min-height: 100vh; background-color: #f8f9fa; margin-left: 250px;">
+    <div class="flex-grow-1 p-4 w-100" style="min-height: 100vh; background-color: #f8f9fa; margin-left: 260px;">
         {% block user_content %}
         {% endblock %}
     </div>
