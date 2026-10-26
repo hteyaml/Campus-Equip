@@ -514,8 +514,16 @@ def user_portal(request):
 @basic_user_required
 def my_requests(request):
     # Fetch only the requests made by the currently logged-in student
-    # .order_by('-id') ensures the newest requests show up first
     student_requests = BorrowRequest.objects.filter(owner=request.user).order_by('-id')
+
+    # Calculate overdue status for each request
+    today = timezone.localdate()
+    for req in student_requests:
+        req.is_overdue = (
+            req.workflow_status == 'Issued' and
+            req.desired_return_date is not None and
+            req.desired_return_date < today
+        )
 
     context = {
         'requests': student_requests,
