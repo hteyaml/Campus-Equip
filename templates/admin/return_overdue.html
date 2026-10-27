@@ -83,9 +83,12 @@
             <span class="fw-bold text-navy" style="font-size: 0.875rem">Active Loans & Item-by-Item Return Processor</span>
             <span class="badge bg-primary bg-opacity-10 text-primary">{{ active_count }} Active</span>
         </div>
-        <div class="table-responsive">
+
+        <!-- Fixed height container fitted for 5 items (~345px max-height) with vertical scroll -->
+        <div class="table-responsive" style="max-height: 345px; overflow-y: auto;">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
-                <thead class="table-light">
+                <!-- Sticky header so it stays visible while scrolling through items -->
+                <thead class="table-light position-sticky top-0" style="z-index: 1;">
                     <tr>
                         <th scope="col" class="py-3 ps-4">Loan ID</th>
                         <th scope="col" class="py-3">Borrower</th>
@@ -126,7 +129,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
+                        <td colspan="7" class="text-center py-4 text-muted">
                             <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
                             No active loans at the moment.
                         </td>
@@ -135,13 +138,37 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination UI Control for Active Loans -->
+        {% if active_loans.has_other_pages %}
+        <div class="card-footer bg-white py-2 px-4 d-flex justify-content-between align-items-center border-0">
+            <span class="text-muted small">Page {{ active_loans.number }} of {{ active_loans.paginator.num_pages }}</span>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if active_loans.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ active_loans.previous_page_number }}">Previous</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                    {% endif %}
+
+                    <li class="page-item active"><span class="page-link">{{ active_loans.number }}</span></li>
+
+                    {% if active_loans.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ active_loans.next_page_number }}">Next</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">Next</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 
     <!-- SECTION 2: Overdue Circulation Watchlist -->
-    <div class="card border-0 shadow-sm rounded-3 mb-3 border-start border-danger border-4">
+    <div class="card border-0 shadow-sm rounded-3 mb-3 border-start">
         <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
             <span class="fw-bold text-danger" style="font-size: 0.875rem">
-                <i class="bi bi-exclamation-octagon me-1"></i> Overdue Circulation Watchlist
+                Overdue Circulation Watchlist
             </span>
             <span class="badge bg-danger bg-opacity-10 text-danger">{{ overdue_count }} Overdue</span>
         </div>
