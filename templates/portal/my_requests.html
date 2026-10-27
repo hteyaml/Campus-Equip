@@ -37,6 +37,7 @@
         color: #475569;
         border: 1px solid #e2e8f0;
     }
+    /* NEW: Overdue Badge Style */
     .badge-overdue {
         background-color: #fee2e2;
         color: #991b1b;
@@ -59,13 +60,14 @@
         {% for req in requests %}
             <div class="col-md-6 col-lg-4">
 
-                <!-- Styled Card -->
+                <!-- Styled Card matching Browse Equipments -->
                 <div class="card equipment-card h-100">
 
                     <!-- Card Header: ID and Status -->
                     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0;">
                         <span class="fw-bold text-dark mb-0">REQ-{{ req.id|stringformat:"04d" }}</span>
 
+                        <!-- Themed Status Badges with OVERDUE logic -->
                         {% if req.workflow_status == 'Issued' and req.is_overdue %}
                             <span class="badge badge-overdue px-2 py-1 fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>OVERDUE</span>
                         {% elif req.workflow_status == 'Pending' %}
@@ -77,7 +79,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Card Body -->
+                    <!-- Card Body: Request Details -->
                     <div class="card-body text-dark py-4">
                         <p>
                             {% if req.equipment_unit %}
@@ -88,6 +90,7 @@
                         </p>
                         <h5 class="page-title fs-5 mb-3">{{ req.item.name }}</h5>
 
+                        <!-- NEW: Overdue Warning Banner -->
                         {% if req.workflow_status == 'Issued' and req.is_overdue %}
                         <div class="alert alert-danger py-2 px-3 mb-4 d-flex align-items-center" style="font-size: 0.8rem; border-radius: 8px;">
                             <i class="bi bi-exclamation-circle-fill me-2 fs-6"></i>
@@ -134,6 +137,7 @@
             </div>
 
         {% empty %}
+            <!-- Empty State Fallback styled to match the theme -->
             <div class="col-12 text-center py-5 mt-4 equipment-card bg-light">
                 <div class="text-muted">
                     <i class="bi bi-inbox fs-1 d-block mb-3"></i>

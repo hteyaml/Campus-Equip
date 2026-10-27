@@ -1,4 +1,5 @@
 import csv
+import calendar
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,6 +13,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 from datetime import timedelta
+from django.db.models.functions import ExtractMonth
 
 from .decorators import admin_required, basic_user_required
 from .models import (
@@ -51,6 +53,16 @@ def signup(request):
 
         if User.objects.filter(username=username).exists():
             messages.error(request, 'That username is already taken.')
+            return redirect('signup')
+
+        # NEW: Check if the Email already exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'An account with this email address already exists.')
+            return redirect('signup')
+
+        # NEW: Check if the Contact Number already exists
+        if Profile.objects.filter(contact_number=contact_number).exists():
+            messages.error(request, 'This contact number is already registered to another account.')
             return redirect('signup')
 
         # 2. Create the User (Django securely hashes the password automatically)
@@ -98,22 +110,52 @@ def role_redirect(request):
 @admin_required
 def admin_dashboard(request):
     today = timezone.now().date()
+    current_year = today.year
 
     # Base query for currently deployed items
     issued_requests = BorrowRequest.objects.filter(workflow_status='Issued')
 
+    # 1. Aggregation for Monthly Issued Loans (Current Year)
+    # Filter requests for the active year and group them by month (1 to 12)
+    monthly_counts = (
+        BorrowRequest.objects.filter(
+            request_date__year=current_year,
+            workflow_status__in=['Issued', 'Returned']
+        )
+        .annotate(month=ExtractMonth('request_date'))
+        .values('month')
+        .annotate(count=Count('id'))
+    )
+
+    # Map results to full 12-month array ['Jan', 'Feb', ...] and default missing months to 0
+    month_map = {item['month']: item['count'] for item in monthly_counts if item['month']}
+    monthly_labels = [calendar.month_abbr[m] for m in range(1, 13)]
+    monthly_data = [month_map.get(m, 0) for m in range(1, 13)]
+
+    # 2. Aggregation for Equipment Category Usage
+    # Count total requested items grouped by category name
+    category_qs = (
+        RequestItem.objects.values('catalog_item__category__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    category_labels = [item['catalog_item__category__name'] or 'Uncategorized' for item in category_qs]
+    category_data = [item['count'] for item in category_qs]
+
     context = {
-        # Core Metrics
         'available_units': EquipmentUnit.objects.filter(inventory_status='Available').count(),
         'pending_requests': BorrowRequest.objects.filter(workflow_status='Pending').count(),
         'active_loans': issued_requests.filter(desired_return_date__gte=today).count(),
         'overdue_loans': issued_requests.filter(desired_return_date__lt=today).count(),
 
-        # Secondary Metrics
         'maintenance_units': EquipmentUnit.objects.filter(inventory_status='Maintenance').count(),
-        'reserved_units': EquipmentUnit.objects.filter(inventory_status='Reserved').count(),
         'active_users': User.objects.filter(profile__role='BASIC_USER', is_active=True).count(),
-        'active_catalog_items': CatalogItem.objects.count(),
+
+        # Chart Datasets
+        'monthly_labels': monthly_labels,
+        'monthly_data': monthly_data,
+        'category_labels': category_labels,
+        'category_data': category_data,
 
         # Recent Audits
         'recent_audits': AuditLog.objects.select_related('actor').order_by('-timestamp')[:5],
@@ -481,7 +523,8 @@ def user_portal(request):
     if search_query:
         items = items.filter(
             Q(name__icontains=search_query) |
-            Q(description__icontains=search_query)
+            Q(description__icontains=search_query) |
+            Q(category__name__icontains=search_query)  # <-- Added this line
         )
 
     if category_filter:
@@ -533,38 +576,31 @@ def my_requests(request):
     return render(request, 'portal/my_requests.html', context)
 
 
+
 @basic_user_required
 def my_profile(request):
     user = request.user
-
-    # Safely fetch or create the linked profile so it doesn't crash if one is missing
     profile, created = Profile.objects.get_or_create(user=user)
 
     if request.method == 'POST':
-        # Retrieve the updated fields from the HTML form
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         contact_number = request.POST.get('contact_number', '').strip()
 
-        # Update and save the core User model
         user.first_name = first_name
         user.last_name = last_name
         user.save()
 
-        # Update and save the custom Profile model
         profile.contact_number = contact_number
         profile.save()
 
-        # Trigger a success banner on reload
         messages.success(request, "Your profile has been updated successfully.")
-        return redirect('my_profile')  # Ensure this matches your urls.py path name
+        return redirect('my_profile')
 
-    context = {
+    return render(request, 'portal/my_profile.html', {
         'user': user,
         'profile': profile,
-    }
-
-    return render(request, 'portal/my_profile.html', context)
+    })
 
 @basic_user_required
 def submit_borrow_request(request, item_id):

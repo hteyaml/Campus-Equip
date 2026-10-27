@@ -110,6 +110,7 @@
                             <th scope="col" class="py-3">Borrower</th>
                             <th scope="col" class="py-3">Item Request & Qty</th>
                             <th scope="col" class="py-3">Asset Code</th>
+                            <th scope="col" class="py-3">Item Request</th>
                             <th scope="col" class="py-3">Request Date</th>
                             <th scope="col" class="py-3">Anticipated Return</th>
                             <th scope="col" class="py-3">Verification Status</th>
@@ -119,8 +120,8 @@
                     <tbody>
                         {% for req in borrow_requests %}
                         <tr>
-                            <!-- Request ID -->
-                            <td class="ps-4 fw-bold text-primary">#REQ-{{ req.id }}</td>
+                                <!-- Request ID -->
+                                <td class="ps-4 fw-bold text-primary">#REQ-{{ req.id }}</td>
 
                             <!-- Borrower -->
                             <td>
@@ -151,22 +152,22 @@
                                 {% endif %}
                             </td>
 
-                            <!-- Request Date -->
-                            <td>{{ req.request_date|date:"M d, Y H:i" }}</td>
+                                <!-- Request Date -->
+                                <td>{{ req.request_date|date:"M d, Y H:i" }}</td>
 
-                            <!-- Anticipated Return -->
-                            <td>{{ req.desired_return_date|date:"M d, Y" }}</td>
+                                <!-- Anticipated Return -->
+                                <td>{{ req.desired_return_date|date:"M d, Y" }}</td>
 
-                            <!-- Verification Status -->
-                            <td>
-                                {% if req.workflow_status == 'Pending' %}
-                                    <span class="badge bg-warning text-dark">{{ req.workflow_status }}</span>
-                                {% elif req.workflow_status == 'Approved' %}
-                                    <span class="badge bg-success">{{ req.workflow_status }}</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ req.workflow_status }}</span>
-                                {% endif %}
-                            </td>
+                                <!-- Verification Status -->
+                                <td>
+                                    {% if req.workflow_status == 'Pending' %}
+                                        <span class="badge bg-warning text-dark">{{ req.workflow_status }}</span>
+                                    {% elif req.workflow_status == 'Approved' %}
+                                        <span class="badge bg-success">{{ req.workflow_status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ req.workflow_status }}</span>
+                                    {% endif %}
+                                </td>
 
                             <!-- Action Button & Dropdown -->
                             <td class="pe-4 text-end">
@@ -238,27 +239,28 @@
                                             </p>
                                         </div>
 
-                                        <div class="mb-3">
-                                            <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Schedule</span>
-                                            <p class="mb-0 text-dark" style="font-size: 0.9rem;">
-                                                <strong>Requested on:</strong> {{ req.request_date|date:"M d, Y H:i" }}<br>
-                                                <strong>Anticipated Return:</strong> {{ req.desired_return_date|date:"M d, Y" }}
-                                            </p>
-                                        </div>
-
-                                        <div class="mb-0">
-                                            <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Reason / Purpose</span>
-                                            <div class="p-3 bg-light rounded mt-1 text-dark" style="font-size: 0.9rem;">
-                                                {{ req.purpose|default:"No specific reason provided by the borrower." }}
+                                            <div class="mb-3">
+                                                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Schedule</span>
+                                                <p class="mb-0 text-dark" style="font-size: 0.9rem;">
+                                                    <strong>Requested on:</strong> {{ req.request_date|date:"M d, Y H:i" }}<br>
+                                                    <strong>Anticipated Return:</strong> {{ req.desired_return_date|date:"M d, Y" }}
+                                                </p>
                                             </div>
+
+                                            <div class="mb-0">
+                                                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Reason / Purpose</span>
+                                                <div class="p-3 bg-light rounded mt-1 text-dark" style="font-size: 0.9rem;">
+                                                    {{ req.purpose|default:"No specific reason provided by the borrower." }}
+                                                </div>
+                                            </div>
+
                                         </div>
-                                    </div>
-                                    <div class="modal-footer border-0 pt-0">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+                                        <div class="modal-footer border-0 pt-0">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
                         <!-- 2. Approve Modal (with Unit Allocation & Decision Reason) -->
                         <div class="modal fade" id="approveModal{{ req.id }}" tabindex="-1" aria-hidden="true">
@@ -332,30 +334,6 @@
                     </tbody>
                 </table>
             </div>
-
-            <!-- Pagination UI Control -->
-            {% if is_paginated or borrow_requests.has_other_pages %}
-            <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center border-0">
-                <span class="text-muted small">Showing queue items</span>
-                <nav aria-label="Page navigation">
-                    <ul class="pagination pagination-sm mb-0">
-                        {% if borrow_requests.has_previous %}
-                            <li class="page-item"><a class="page-link" href="?page={{ borrow_requests.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a></li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">Previous</span></li>
-                        {% endif %}
-
-                        <li class="page-item active"><span class="page-link">{{ borrow_requests.number }}</span></li>
-
-                        {% if borrow_requests.has_next %}
-                            <li class="page-item"><a class="page-link" href="?page={{ borrow_requests.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a></li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">Next</span></li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>

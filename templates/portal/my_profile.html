@@ -88,7 +88,7 @@
     <div class="card profile-card shadow-sm col-lg-8">
         <div class="card-body p-4">
             <!-- Ensure 'my_profile' matches the name= attribute in your urls.py -->
-            <form method="POST" action="">
+            <form method="POST" action="{% url 'my_profile' %}">
                 {% csrf_token %}
 
                 <!-- Editable Section -->

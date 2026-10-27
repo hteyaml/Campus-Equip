@@ -81,64 +81,30 @@
             </div>
         </div>
 
-        <!-- Row 2: Secondary Metrics -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="stat-card h-100 p-3 shadow-sm bg-white rounded">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <span class="stat-title text-uppercase fw-bold text-subtle" style="font-size: 0.68rem;">Maintenance</span>
-                    <div class="stat-icon-badge bg-warning bg-opacity-10 text-warning p-2 rounded">
-                        <i class="bi bi-tools"></i>
-                    </div>
+
+    <!-- NEW: Charts Section -->
+    <div class="row g-3 mb-4">
+        <!-- Monthly Issued Loans Chart -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="fw-bold mb-0 text-navy">Monthly Issued Loans (This Year)</h6>
                 </div>
-                <div class="d-flex align-items-baseline gap-2">
-                    <span class="stat-number fw-bold text-navy fs-3 mb-0">{{ maintenance_units|default:"0" }}</span>
-                    <span class="stat-label text-muted small" style="font-size: 0.8rem;">units in repair</span>
+                <div class="card-body p-3">
+                    <canvas id="monthlyLoanChart" style="max-height: 300px;"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="stat-card h-100 p-3 shadow-sm bg-white rounded">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <span class="stat-title text-uppercase fw-bold text-subtle" style="font-size: 0.68rem;">Reserved Units</span>
-                    <div class="stat-icon-badge bg-secondary bg-opacity-10 text-secondary p-2 rounded">
-                        <i class="bi bi-bookmark-check"></i>
-                    </div>
+        <!-- Equipment Category Usage Chart -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="fw-bold mb-0 text-navy">Equipment Category Usage</h6>
                 </div>
-                <div class="d-flex align-items-baseline gap-2">
-                    <span class="stat-number fw-bold text-navy fs-3 mb-0">{{ reserved_units|default:"0" }}</span>
-                    <span class="stat-label text-muted small" style="font-size: 0.8rem;">allocated</span>
+                <div class="card-body p-3">
+                    <canvas id="categoryUsageChart" style="max-height: 300px;"></canvas>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-             <div class="stat-card h-100 p-3 shadow-sm bg-white rounded">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <span class="stat-title text-uppercase fw-bold text-subtle" style="font-size: 0.68rem;">Active Borrowers</span>
-                    <div class="stat-icon-badge bg-dark bg-opacity-10 text-dark p-2 rounded">
-                        <i class="bi bi-people"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-baseline gap-2">
-                    <span class="stat-number fw-bold text-navy fs-3 mb-0">{{ active_users|default:"0" }}</span>
-                    <span class="stat-label text-muted small" style="font-size: 0.8rem;">registered</span>
-                 </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-             <div class="stat-card h-100 p-3 shadow-sm bg-white rounded">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <span class="stat-title text-uppercase fw-bold text-subtle" style="font-size: 0.68rem;">Catalog Items</span>
-                    <div class="stat-icon-badge bg-primary bg-opacity-10 text-primary p-2 rounded">
-                        <i class="bi bi-journal-text"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-baseline gap-2">
-                    <span class="stat-number fw-bold text-navy fs-3 mb-0">{{ active_catalog_items|default:"0" }}</span>
-                    <span class="stat-label text-muted small" style="font-size: 0.8rem;">unique models</span>
-                 </div>
             </div>
         </div>
     </div>
@@ -193,4 +159,44 @@
         </div>
     </div>
 </div>
+
+<!-- Chart.js and Initialization Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Render Monthly Loan Chart
+        const ctxMonthly = document.getElementById('monthlyLoanChart').getContext('2d');
+        new Chart(ctxMonthly, {
+            type: 'line',
+            data: {
+                labels: {{ monthly_labels|safe|default:"[]" }},
+                datasets: [{
+                    label: 'Loans Issued',
+                    data: {{ monthly_data|safe|default:"[]" }},
+                    borderColor: '#1D4ED8',
+                    backgroundColor: 'rgba(29, 78, 216, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Render Category Usage Chart
+        const ctxCategory = document.getElementById('categoryUsageChart').getContext('2d');
+        new Chart(ctxCategory, {
+            type: 'doughnut',
+            data: {
+                labels: {{ category_labels|safe|default:"[]" }},
+                datasets: [{
+                    data: {{ category_data|safe|default:"[]" }},
+                    backgroundColor: ['#1D4ED8', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'],
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    });
+</script>
 {% endblock %}
