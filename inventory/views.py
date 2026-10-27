@@ -190,11 +190,13 @@ def review_queue(request):
 
     pending_count = BorrowRequest.objects.filter(workflow_status='Pending').count()
     approved_count = BorrowRequest.objects.filter(workflow_status='Approved').count()
+    available_units = EquipmentUnit.objects.filter(inventory_status='Available').select_related('catalog_item')
 
     context = {
         'borrow_requests': borrow_requests,
         'pending_count': pending_count,
         'approved_count': approved_count,
+        'available_units': available_units,
         'search_query': search_query,
         'status_filter': status_filter,
         'date_filter': date_filter,
@@ -679,8 +681,6 @@ def cancel_request(request, pk):
 
     return redirect('my_requests')
 
-def my_profile(request):
-    return render(request, 'portal/my_profile.html')
 
 # --- Loan & Overdue Reports backend ---
 from .report_views import loan_reports_view, overdue_reports_view  # noqa: E402,F401
