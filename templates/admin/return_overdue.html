@@ -1,0 +1,197 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+  <div class="container-fluid px-3 py-3">
+
+    <div class="mb-2">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+                <h4 class="fw-bold text-navy mb-0 fs-4">Return & Overdue</h4>
+                <p class="text-muted small mb-0" style="font-size: 0.8rem;">
+                    Physical equipment handoffs, signed custody verifications, and conditional return routing.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Metric Cards -->
+    <div class="row g-2 mb-3">
+        <!-- Card 1: Active Deployments -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.65rem;">Active Field Deployments</span>
+                        <div class="icon-box bg-primary bg-opacity-10 text-primary p-2 rounded">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold mb-0 text-navy">{{ active_count }}</h3>
+                        <span class="text-muted small">active loans</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Overdue Delinquencies -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.65rem;">Overdue Delinquencies</span>
+                        <div class="icon-box bg-danger bg-opacity-10 text-danger p-2 rounded">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold mb-0 text-danger">{{ overdue_count }}</h3>
+                        <span class="text-muted small">overdue items</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Completed / Returned -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 h-100 shadow-sm d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="text-uppercase fw-bold text-subtle" style="font-size: 0.65rem;">Total Processed Returns</span>
+                        <div class="icon-box bg-success bg-opacity-10 text-success p-2 rounded">
+                            <i class="bi bi-arrow-return-left"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="fw-bold mb-0 text-navy">{{ returned_count }}</h3>
+                        <span class="text-muted small">units returned</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 1: Active Loans & Item-by-Item Return Processor -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-navy" style="font-size: 0.875rem">Active Loans & Item-by-Item Return Processor</span>
+            <span class="badge bg-primary bg-opacity-10 text-primary">{{ active_count }} Active</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="py-3 ps-4">Loan ID</th>
+                        <th scope="col" class="py-3">Borrower</th>
+                        <th scope="col" class="py-3">Deployed Hardware Package</th>
+                        <th scope="col" class="py-3">Asset Code</th>
+                        <th scope="col" class="py-3">Due Date</th>
+                        <th scope="col" class="py-3">Status</th>
+                        <th scope="col" class="py-3 pe-4 text-end">Intake Processing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in active_loans %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-primary">#REQ-{{ req.id }}</td>
+                        <td>
+                            <span class="fw-medium text-dark">{{ req.owner.username }}</span>
+                        </td>
+                        <td>
+                            <span class="fw-medium text-dark">{{ req.item.name }}</span><br>
+                            <small class="text-muted">{{ req.item.category.name }}</small>
+                        </td>
+                        <td>
+                            {% if req.equipment_unit %}
+                                <span class="badge bg-secondary font-monospace">{{ req.equipment_unit.asset_code }}</span>
+                            {% else %}
+                                <span class="text-muted fst-italic small">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.desired_return_date|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge bg-info bg-opacity-10 text-info px-2 py-1">Active / Issued</span>
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="{% url 'update_borrow_status' req.id 'Returned' %}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-box-arrow-in-down me-1"></i> Process Return
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
+                            No active loans at the moment.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 2: Overdue Circulation Watchlist -->
+    <div class="card border-0 shadow-sm rounded-3 mb-3 border-start border-danger border-4">
+        <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-danger" style="font-size: 0.875rem">
+                <i class="bi bi-exclamation-octagon me-1"></i> Overdue Circulation Watchlist
+            </span>
+            <span class="badge bg-danger bg-opacity-10 text-danger">{{ overdue_count }} Overdue</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="py-3 ps-4">Loan ID</th>
+                        <th scope="col" class="py-3">Borrower</th>
+                        <th scope="col" class="py-3">Deployed Hardware Package</th>
+                        <th scope="col" class="py-3">Due Date</th>
+                        <th scope="col" class="py-3">Status</th>
+                        <th scope="col" class="py-3 pe-4 text-end">Intake Processing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in overdue_loans %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-danger">#REQ-{{ req.id }}</td>
+                        <td>
+                            <span class="fw-medium text-dark">{{ req.owner.username }}</span>
+                        </td>
+                        <td>
+                            <span class="fw-medium text-dark">{{ req.item.name }}</span><br>
+                            <small class="text-muted">{{ req.item.category.name }}</small>
+                        </td>
+                        <td class="text-danger fw-semibold">
+                            {{ req.desired_return_date|date:"M d, Y" }}
+                        </td>
+                        <td>
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Overdue</span>
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="{% url 'update_borrow_status' req.id 'Returned' %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-box-arrow-in-down me-1"></i> Force Return
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-check-circle fs-2 text-success d-block mb-2"></i>
+                            No overdue items! All equipment returns are on schedule.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

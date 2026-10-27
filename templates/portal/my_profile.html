@@ -1,0 +1,143 @@
+{% extends 'base_user.html' %}
+
+{% block extra_css %}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #0F172A;
+    }
+    .page-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .profile-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background-color: #ffffff;
+    }
+    .form-control {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+    }
+    .form-control:focus {
+        border-color: #1D4ED8;
+        box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.25);
+    }
+    /* Distinct styling for system-locked inputs */
+    .form-control[readonly] {
+        background-color: #f8fafc;
+        color: #64748b;
+        cursor: not-allowed;
+    }
+    .btn-primary-custom {
+        background-color: #1D4ED8;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 600;
+        padding: 0.5rem 1.5rem;
+        transition: background-color 0.2s ease;
+    }
+    .btn-primary-custom:hover {
+        background-color: #1e3a8a;
+        color: #ffffff;
+    }
+</style>
+{% endblock %}
+
+{% block user_content %}
+<div class="container-fluid py-4">
+
+    <!-- Page Header -->
+    <div class="mb-4 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+        <h2 class="page-title mb-1">My Profile</h2>
+        <small class="text-muted">Manage your personal contact details.</small>
+    </div>
+
+    <!-- Django Success Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success alert-dismissible fade show border-success-subtle bg-success-subtle text-success col-lg-8" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <!-- Profile Summary Banner -->
+    <div class="card profile-card shadow-sm col-lg-8 mb-4" style="background-color: #f8fafc; border-left: 4px solid #1D4ED8;">
+        <div class="card-body p-3 d-flex align-items-center">
+            <!-- Profile Icon -->
+            <div class="me-4 text-muted">
+                <i class="bi bi-person-circle" style="font-size: 3rem;"></i>
+            </div>
+
+            <!-- Display Name and Contact -->
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">
+                    {{ user.first_name|default:"Update Your Name" }} {{ user.last_name }}
+                </h4>
+                <span class="text-muted small fw-medium">
+                    <i class="bi bi-telephone-fill me-2"></i>{{ profile.contact_number|default:"No contact number added" }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <!-- Profile Form Card -->
+    <div class="card profile-card shadow-sm col-lg-8">
+        <div class="card-body p-4">
+            <!-- Ensure 'my_profile' matches the name= attribute in your urls.py -->
+            <form method="POST" action="">
+                {% csrf_token %}
+
+                <!-- Editable Section -->
+                <h5 class="fw-bold mb-3 border-bottom pb-2">Editable Information</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="firstName" class="form-label fw-medium small text-muted">First Name</label>
+                        <input type="text" class="form-control" id="firstName" name="first_name" value="{{ user.first_name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="lastName" class="form-label fw-medium small text-muted">Last Name</label>
+                        <input type="text" class="form-control" id="lastName" name="last_name" value="{{ user.last_name }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="contactNumber" class="form-label fw-medium small text-muted">Contact Number</label>
+                        <input type="text" class="form-control" id="contactNumber" name="contact_number" value="{{ profile.contact_number|default:'' }}">
+                    </div>
+                </div>
+
+                <!-- Read-Only / System Locked Section -->
+                <h5 class="fw-bold mb-3 border-bottom pb-2 mt-5">System Locked Information</h5>
+
+                <div class="alert bg-light border text-muted small py-2 d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Role and activation status are managed by administrators and cannot be altered here.
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium small text-muted">Username</label>
+                        <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium small text-muted">System Role</label>
+                        <!-- Fallback to BASIC_USER if the role isn't explicitly set -->
+                        <input type="text" class="form-control" value="{{ profile.role|default:'BASIC_USER' }}" readonly>
+                    </div>
+                </div>
+
+                <!-- Form Submit Action -->
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary-custom d-flex align-items-center">
+                        <i class="bi bi-save me-2"></i> Save Changes
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

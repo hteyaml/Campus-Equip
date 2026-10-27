@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+:root {
+    /* Core colors */
+    --brand-primary:   #1D4ED8;
+    --brand-secondary: #0284C7;
+    --brand-tertiary:  #38BDF8;
+    --brand-neutral:   #0F172A;
+
+    /* Shades used by components */
+    --primary-hover:   #1E40AF;
+    --primary-deep:    #1E3A8A;
+    --primary-soft:    #DBEAFE;
+    --primary-tint:    #EFF4FF;
+    --secondary-deep:  #075985;
+    --secondary-soft:  #E0F2FE;
+    --tertiary-soft:   #E0F7FF;
+    --neutral-700:     #334155;
+    --neutral-500:     #64748B;
+    --neutral-300:     #CBD5E1;
+    --danger-strong:   #B91C1C;
+    --danger-soft:     #FEE2E2;
+    --page-bg:         #EEF2FF;
+
+    /* Bootstrap 5.3 variable overrides */
+    --bs-primary: #1D4ED8;
+    --bs-primary-rgb: 29, 78, 216;
+    --bs-link-color: #1D4ED8;
+    --bs-link-hover-color: #1E40AF;
+    --bs-dark: #0F172A;
+    --bs-dark-rgb: 15, 23, 42;
+    --bs-body-color: #0F172A;
+    --bs-secondary-color: #64748B;
+    --bs-body-font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+body {
+    font-family: var(--bs-body-font-family);
+}
+
+/* Headline font */
+h1, h2, h3, h4, h5, h6,
+.stat-number {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    color: var(--brand-neutral);
+}
+
+.bg-dark h1, .bg-dark h2, .bg-dark h3,
+.bg-dark h4, .bg-dark h5, .bg-dark h6
+{
+    color: #ffffff;
+}
+.text-muted { color: var(--neutral-500) !important; }
+
+/* Page background (overrides the inline #f8f9fa in base_admin / base_user) */
+#wrapper > div.flex-grow-1 {
+    background-color: var(--page-bg) !important;
+}
+
+/* Buttons */
+.btn-primary {
+    --bs-btn-bg: var(--brand-primary);
+    --bs-btn-border-color: var(--brand-primary);
+    --bs-btn-hover-bg: var(--primary-hover);
+    --bs-btn-hover-border-color: var(--primary-hover);
+    --bs-btn-active-bg: var(--primary-deep);
+    --bs-btn-active-border-color: var(--primary-deep);
+    --bs-btn-focus-shadow-rgb: 29, 78, 216;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--brand-primary);
+    --bs-btn-border-color: var(--brand-primary);
+    --bs-btn-hover-bg: var(--brand-primary);
+    --bs-btn-hover-border-color: var(--brand-primary);
+    --bs-btn-active-bg: var(--primary-hover);
+    --bs-btn-active-border-color: var(--primary-hover);
+}
+
+.btn-outline-dark {
+    --bs-btn-color: var(--brand-neutral);
+    --bs-btn-border-color: var(--neutral-500);
+    --bs-btn-hover-bg: var(--brand-neutral);
+    --bs-btn-hover-border-color: var(--brand-neutral);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--neutral-700);
+    --bs-btn-border-color: var(--neutral-300);
+    --bs-btn-hover-bg: var(--primary-soft);
+    --bs-btn-hover-color: var(--primary-deep);
+    --bs-btn-hover-border-color: var(--brand-primary);
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.2);
+}
+
+.input-group-text.bg-light {
+    background-color: var(--primary-tint) !important;
+}
+
+/* Tables */
+.table-light {
+    --bs-table-bg: var(--primary-tint);
+    --bs-table-color: var(--brand-neutral);
+}
+
+.table-hover > tbody > tr:hover > * {
+    --bs-table-hover-bg: var(--primary-tint);
+}
+
+/* Pagination */
+.pagination {
+    --bs-pagination-color: var(--brand-primary);
+    --bs-pagination-hover-color: var(--primary-hover);
+    --bs-pagination-hover-bg: var(--primary-soft);
+    --bs-pagination-active-bg: var(--brand-primary);
+    --bs-pagination-active-border-color: var(--brand-primary);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.2);
+}
+
+/* Dashboard stat cards (dashboard.css overrides) */
+.stat-card {
+    border-color: var(--primary-soft);
+}
+.stat-card:hover {
+    border-color: var(--brand-tertiary);
+}
+.stat-title {
+    color: var(--neutral-700);
+}
+.stat-icon-badge {
+    background-color: var(--primary-soft);
+    color: var(--brand-primary);
+}
+.stat-number {
+    color: var(--brand-neutral);
+}
+.stat-label {
+    color: var(--neutral-500);
+}
+
+/* Sidebar */
+.bg-hover-link:hover {
+    background-color: rgba(56, 189, 248, 0.22) !important;
+}
+
+/* Keyboard focus visible everywhere */
+a:focus-visible,
+button:focus-visible {
+    outline: 3px solid var(--brand-tertiary);
+    outline-offset: 2px;
+}

@@ -1,0 +1,181 @@
+{% extends 'base_user.html' %}
+
+{% block extra_css %}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #0F172A;
+    }
+    .page-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .equipment-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background-color: #ffffff;
+    }
+    .equipment-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .badge-pending {
+        background-color: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .badge-approved {
+        background-color: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+    .badge-default {
+        background-color: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+    .badge-overdue {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+</style>
+{% endblock %}
+
+{% block user_content %}
+<div class="container-fluid py-4">
+
+    <!-- Page Header -->
+    <div class="mb-4 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+        <h2 class="page-title mb-1">My Requests</h2>
+        <small class="text-muted">Track the status and details of your borrowed equipment.</small>
+    </div>
+
+    <!-- Requests Grid -->
+    <div class="row g-4">
+        {% for req in requests %}
+            <div class="col-md-6 col-lg-4">
+
+                <!-- Styled Card -->
+                <div class="card equipment-card h-100">
+
+                    <!-- Card Header: ID and Status -->
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0;">
+                        <span class="fw-bold text-dark mb-0">REQ-{{ req.id|stringformat:"04d" }}</span>
+
+                        {% if req.workflow_status == 'Issued' and req.is_overdue %}
+                            <span class="badge badge-overdue px-2 py-1 fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>OVERDUE</span>
+                        {% elif req.workflow_status == 'Pending' %}
+                            <span class="badge badge-pending px-2 py-1 fw-medium">Pending</span>
+                        {% elif req.workflow_status == 'Approved' %}
+                            <span class="badge badge-approved px-2 py-1 fw-medium">Approved</span>
+                        {% else %}
+                            <span class="badge badge-default px-2 py-1 fw-medium">{{ req.workflow_status }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body text-dark py-4">
+                        <p>
+                            {% if req.equipment_unit %}
+                                <span class="badge bg-primary">{{ req.equipment_unit.asset_code }}</span>
+                            {% else %}
+                                <span class="text-muted fst-italic">To be assigned upon approval</span>
+                            {% endif %}
+                        </p>
+                        <h5 class="page-title fs-5 mb-3">{{ req.item.name }}</h5>
+
+                        {% if req.workflow_status == 'Issued' and req.is_overdue %}
+                        <div class="alert alert-danger py-2 px-3 mb-4 d-flex align-items-center" style="font-size: 0.8rem; border-radius: 8px;">
+                            <i class="bi bi-exclamation-circle-fill me-2 fs-6"></i>
+                            <div><strong>Action Required:</strong> Please return this equipment immediately to avoid penalties.</div>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between mb-3 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+                            <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Quantity:</span>
+                            <span class="fw-medium">
+                                {% for linked_item in req.requestitem_set.all %}
+                                    {{ linked_item.quantity }}
+                                {% empty %}
+                                    1
+                                {% endfor %}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 border-bottom pb-2" style="border-color: #e2e8f0 !important;">
+                            <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Purpose:</span>
+                            <span class="fw-medium text-end text-break" style="max-width: 70%;">
+                                {{ req.purpose|default:"No specific reason provided." }}
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Desired Return:</span>
+                            <span class="fw-medium {% if req.workflow_status == 'Issued' and req.is_overdue %}text-danger fw-bold{% endif %}">
+                                {{ req.desired_return_date|date:"M d, Y"|default:"Not specified" }}
+                            </span>
+                        </div>
+
+                        <!-- Cancel Button ONLY for Pending or Approved statuses -->
+                        {% if req.workflow_status == 'Pending' or req.workflow_status == 'Approved' %}
+                        <div class="mt-3 pt-2">
+                            <button type="button" class="btn btn-outline-danger w-100 btn-sm fw-medium py-2" data-bs-toggle="modal" data-bs-target="#cancelModal{{ req.id }}">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Request
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% empty %}
+            <div class="col-12 text-center py-5 mt-4 equipment-card bg-light">
+                <div class="text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                    <h5 class="page-title fs-5 text-dark">No Requests Found</h5>
+                    <p class="mb-0">You have not submitted any equipment borrow requests yet.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- MODALS OUTSIDE THE GRID -->
+    {% for req in requests %}
+        {% if req.workflow_status == 'Pending' or req.workflow_status == 'Approved' %}
+        <div class="modal fade" id="cancelModal{{ req.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ req.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="modal-header border-bottom-0 pb-0">
+                        <h5 class="modal-title page-title fs-5 text-dark" id="cancelModalLabel{{ req.id }}">Confirm Cancellation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-dark py-3">
+                        <p class="mb-1">Are you sure you want to cancel request <strong>REQ-{{ req.id|stringformat:"04d" }}</strong> for <strong>{{ req.item.name }}</strong>?</p>
+                        <p class="text-muted small mb-0">
+                            {% if req.workflow_status == 'Approved' %}
+                                This will cancel the request and return the assigned units back to available stock.
+                            {% else %}
+                                This action will withdraw your pending request.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0 pb-3">
+                        <button type="button" class="btn btn-light btn-sm px-3 fw-medium" data-bs-dismiss="modal">Keep Request</button>
+                        <form action="{% url 'cancel_request' req.id %}" method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm px-3 fw-medium">Yes, Cancel Request</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+</div>
+{% endblock %}

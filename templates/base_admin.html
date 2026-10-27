@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block layout %}
+<div class="d-flex" id="wrapper" style="min-height: 100vh;">
+    {% include 'components/admin_sidebar.html' %}
+
+    <!-- Main Content Area -->
+    <div class="flex-grow-1 p-4" style="min-height: 100vh; background-color: #f8f9fa;">
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

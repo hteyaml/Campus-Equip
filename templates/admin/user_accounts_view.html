@@ -1,0 +1,104 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block title %}User Accounts | Campus Inventory{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">User Accounts</h3>
+        <p class="text-muted mb-0" style="font-size: 0.875rem">Manage basic-user access and view request histories.</p>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3">
+    <form method="GET" action="{% url 'user_accounts' %}" class="d-flex gap-2">
+        <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+                <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" name="search" class="form-control border-start-0 ps-0" style="font-size: 0.875rem"
+                   placeholder="Search by username, name, or email..."
+                   value="{{ request.GET.search|default:'' }}">
+        </div>
+        <button type="submit" class="btn btn-primary px-4" style="font-size: 0.875rem">Search</button>
+        {% if request.GET.search %}
+            <a href="{% url 'user_accounts' %}" class="btn btn-outline-secondary" style="font-size: 0.875rem">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- User Directory Table -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="py-3 ps-4">Username & Email</th>
+                    <th scope="col" class="py-3">Full Name</th>
+                    <th scope="col" class="py-3">Contact Number</th>
+                    <th scope="col" class="py-3">Account Status</th>
+                    <th scope="col" class="py-3 pe-4 text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for target_user in basic_users %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="fw-medium text-dark">{{ target_user.username }}</span><br>
+                        <small class="text-muted">{{ target_user.email|default:"No email" }}</small>
+                    </td>
+                    <td>{{ target_user.first_name }} {{ target_user.last_name }}</td>
+                    <td>{{ target_user.profile.contact_number|default:"--" }}</td>
+
+                    <td>
+                        {% if target_user.is_active %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">Deactivated</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="pe-4 text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'user_history' target_user.id %}" class="btn btn-sm btn-outline-primary" style="font-size: 0.8125rem">
+                                <i class="bi bi-clock-history me-1"></i> History
+                            </a>
+
+                            <form method="POST" action="{% url 'toggle_user_status' target_user.id %}" class="m-0">
+                                {% csrf_token %}
+                                {% if target_user.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size: 0.8125rem" title="Deactivate Account">
+                                        <i class="bi bi-person-slash"></i>
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success" style="font-size: 0.8125rem" title="Activate Account">
+                                        <i class="bi bi-person-check"></i>
+                                    </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-people fs-1 d-block mb-3"></i>
+                            <h5>No Users Found</h5>
+                            <p class="mb-0">No basic user accounts match your criteria.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
