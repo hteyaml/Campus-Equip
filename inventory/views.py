@@ -513,8 +513,13 @@ def user_portal(request):
     search_query = request.GET.get('search', '').strip()
     category_filter = request.GET.get('category', '').strip()
 
+    # Annotate total units (EXCLUDING 'Retired' units) and available units
     items = CatalogItem.objects.annotate(
-        total_units=Count('equipmentunit', distinct=True),
+        total_units=Count(
+            'equipmentunit',
+            filter=~Q(equipmentunit__inventory_status='Retired'),
+            distinct=True
+        ),
         available_units=Count(
             'equipmentunit',
             filter=Q(equipmentunit__inventory_status='Available'),
@@ -522,11 +527,17 @@ def user_portal(request):
         )
     ).order_by('name')
 
+    # Optional: If CatalogItem model has an 'is_archived' or 'is_active' field, filter it here:
+    # items = items.filter(is_archived=False)
+
+    # Optional: If you want to completely hide catalog items that have 0 non-retired units:
+    # items = items.filter(total_units__gt=0)
+
     if search_query:
         items = items.filter(
             Q(name__icontains=search_query) |
             Q(description__icontains=search_query) |
-            Q(category__name__icontains=search_query)  # <-- Added this line
+            Q(category__name__icontains=search_query)
         )
 
     if category_filter:
@@ -534,7 +545,7 @@ def user_portal(request):
 
     categories = CatalogItem.objects.values_list('category__name', flat=True).distinct()
 
-    # --- NEW LOGIC: Calculate date limits for the Request Modal ---
+    # --- Date limits & settings for Request Modal ---
     settings = SystemSettings.objects.first()
     max_days = settings.max_loan_duration_days if settings else 7
     max_qty = settings.max_quantity_per_item if settings else 3
@@ -559,7 +570,6 @@ def user_portal(request):
 @basic_user_required
 def my_requests(request):
     # Fetch only the requests made by the currently logged-in student
-    # student_requests = BorrowRequest.objects.filter(owner=request.user).order_by('-id')
     student_requests = BorrowRequest.objects.filter(owner=request.user).select_related('equipment_unit', 'item').order_by('-id')
 
     # Calculate overdue status for each request
@@ -606,44 +616,45 @@ def my_profile(request):
 
 @basic_user_required
 def submit_borrow_request(request, item_id):
-    """Handles the creation of a new borrow request from the student portal."""
     if request.method == 'POST':
-        catalog_item = get_object_or_404(CatalogItem, id=item_id)
+        item = get_object_or_404(CatalogItem, id=item_id)
 
-        # Get data from the modal form
-        quantity = int(request.POST.get('quantity', 1))
-        purpose = request.POST.get('purpose', '').strip()
-
-        # ADDED: Get the return date from the form
+        # 1. Extract POST form data
         desired_return_date = request.POST.get('desired_return_date')
+        purpose = request.POST.get('purpose', '').strip()
+        try:
+            quantity = int(request.POST.get('quantity', 1))
+        except (ValueError, TypeError):
+            quantity = 1
 
+        # 2. Check if an available (non-retired/non-borrowed) unit actually exists
         available_unit = EquipmentUnit.objects.filter(
-            catalog_item=catalog_item,
+            catalog_item=item,
             inventory_status='Available'
         ).first()
-
+  
         if not available_unit:
-            messages.error(request, f"No available unit for {catalog_item.name}.")
+            messages.error(request, "Sorry, this item is currently archived or unavailable for borrowing.")
             return redirect('user_portal')
 
-        # Create the parent Borrow Request
+        # 3. Create the parent Borrow Request (using 'item' instead of undefined 'catalog_item')
         borrow_req = BorrowRequest.objects.create(
             owner=request.user,
-            item=catalog_item,
+            item=item,
             equipment_unit=available_unit,
-            desired_return_date=desired_return_date,  # ADDED: Save to database
+            desired_return_date=desired_return_date,
             purpose=purpose,
             workflow_status='Pending'
         )
 
-        # Create the specific Item entry linked to the request
+        # 4. Create the specific RequestItem entry linked to the request
         RequestItem.objects.create(
             borrow_request=borrow_req,
-            catalog_item=catalog_item,
+            catalog_item=item,
             quantity=quantity
         )
 
-        messages.success(request, f"Your request for {quantity}x {catalog_item.name} has been submitted for review.")
+        messages.success(request, f"Your request for {quantity}x {item.name} has been submitted for review.")
 
     return redirect('user_portal')
 
