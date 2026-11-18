@@ -30,10 +30,10 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "USERNAME.pythonanywhere.com",
+    "hteyaml.pythonanywhere.com",
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://USERNAME.pythonanywhere.com"]
+CSRF_TRUSTED_ORIGINS = ["https://hteyaml.pythonanywhere.com"]
 
 
 # Application definition
